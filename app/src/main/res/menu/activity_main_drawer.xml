@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@drawable/home_icon"
+            android:title="@string/menu_home" />
+        <item
+            android:id="@+id/nav_adopt"
+            android:icon="@drawable/adoption_icon"
+            android:title="@string/menu_adopt" />
+        <item
+            android:id="@+id/nav_vet"
+            android:icon="@drawable/vet_icon"
+            android:title="@string/menu_vet" />
+        <item
+            android:id="@+id/nav_groom"
+            android:icon="@drawable/groom_icon"
+            android:title="@string/menu_groomer" />
+        <item
+            android:id="@+id/nav_donate"
+            android:icon="@drawable/donate_icon"
+            android:title="@string/menu_donate" />
+        <item
+            android:id="@+id/nav_shelter"
+            android:icon="@drawable/shelter_icon"
+            android:title="@string/menu_shelter" />
+        <item
+            android:id="@+id/nav_chat"
+            android:icon="@drawable/chat_icon"
+            android:title="@string/menu_chat" />
+    </group>
+</menu>

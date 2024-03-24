@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mobile_navigation"
+    app:startDestination="@+id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.app.finalapp.ui.home.HomeFragment"
+        android:label="@string/menu_home"
+        tools:layout="@layout/fragment_home" />
+    <fragment
+        android:id="@+id/nav_adopt"
+        android:name="com.app.finalapp.ui.adoption.AdoptionFragment"
+        android:label="@string/menu_adopt"
+        tools:layout="@layout/fragment_adoption" />
+    <fragment
+        android:id="@+id/nav_chat"
+        android:name="com.app.finalapp.ui.chat.ChatFragment"
+        android:label="@string/menu_chat"
+        tools:layout="@layout/fragment_chat" />
+    <fragment
+        android:id="@+id/nav_donate"
+        android:name="com.app.finalapp.ui.donation.DonationFragment"
+        android:label="@string/menu_donate"
+        tools:layout="@layout/fragment_donation" />
+    <fragment
+        android:id="@+id/nav_groom"
+        android:name="com.app.finalapp.ui.groom.GroomFragment"
+        android:label="@string/menu_groomer"
+        tools:layout="@layout/fragment_groom" />
+    <fragment
+        android:id="@+id/nav_shelter"
+        android:name="com.app.finalapp.ui.shelter.ShelterFragment"
+        android:label="@string/menu_shelter"
+        tools:layout="@layout/fragment_shelter" />
+    <fragment
+        android:id="@+id/nav_vet"
+        android:name="com.app.finalapp.ui.vet.VetFragment"
+        android:label="@string/menu_vet"
+        tools:layout="@layout/fragment_vet" />
+    <fragment
+        android:id="@+id/nav_login"
+        android:name="com.app.finalapp.ui.login.LoginFragment"
+        android:label="@string/login"
+        tools:layout="@layout/fragment_login" >
+        <action
+            android:id="@+id/action_nav_login_to_nav_register"
+            app:destination="@id/nav_register"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"
+            app:popUpTo="@+id/nav_main" />
+    </fragment>
+    <fragment
+        android:id="@+id/nav_register"
+        android:name="com.app.finalapp.ui.register.RegisterFragment"
+        android:label="@string/register"
+        tools:layout="@layout/fragment_register" />
+
+</navigation>

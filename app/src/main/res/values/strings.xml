@@ -1,0 +1,35 @@
+<resources>
+    <string name="app_name">Oscar</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">Android Studio</string>
+    <string name="nav_header_subtitle">android.studio@android.com</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">Settings</string>
+
+    <!-- Menu Items -->
+    <string name="menu_home">Home</string>
+    <string name="menu_adopt">Adopt an Animal!</string>
+    <string name="menu_vet">Veterinary</string>
+    <string name="menu_groomer">Groomer</string>
+    <string name="menu_donate">Donate</string>
+    <string name="menu_shelter">Shelters</string>
+    <string name="menu_chat">Chat</string>
+    <string name="menu_profile">Profile</string>
+
+    <!--Login Page -->
+    <string name="login">Login</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="register">Register</string>
+    <string name="forgot_pass">Forgot my password</string>
+
+    <!--Register Page-->
+    <string name="dog_string">Create your profile:</string>
+    <string name="name">Name</string>
+    <string name="forename">Forename</string>
+    <string name="confirm_pass"> Confirm Password</string>
+    <string name="photo">Add photo</string>
+    <string name="new_profile">Create profile</string>
+
+</resources>
