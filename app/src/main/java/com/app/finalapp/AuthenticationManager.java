@@ -5,6 +5,9 @@ import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
@@ -19,11 +22,21 @@ public class AuthenticationManager {
 
     private final FirebaseAuth mAuth;
     private final DatabaseReference mDatabase;
+    private MutableLiveData<Boolean> isUserLoggedIn = new MutableLiveData<>();
+
     public AuthenticationManager() {
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference().child("users");
+        // Initialize isUserLoggedIn based on current user status
+        isUserLoggedIn.setValue(getCurrentUser() != null);
+    }
+    public LiveData<Boolean> isUserLoggedIn() {
+        return isUserLoggedIn;
     }
 
+    public void checkUserLoggedIn() {
+        isUserLoggedIn.setValue(getCurrentUser() != null);
+    }
     public void registerUser(@NonNull String email, @NonNull String password, @NonNull String name, @NonNull String forname, @NonNull Uri imageUri, @NonNull Context context, AuthCallback callback) {
         if (isValidEmail(email) && isValidPassword(password)) {
             mAuth.createUserWithEmailAndPassword(email, password)
@@ -72,6 +85,7 @@ public class AuthenticationManager {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("name", name);
         userMap.put("forname", forname);
+        userMap.put("email", email);
         userMap.put("password", password);
         userMap.put("imageUrl", ""); // Initialize with an empty string
 

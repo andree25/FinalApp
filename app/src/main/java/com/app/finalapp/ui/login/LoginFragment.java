@@ -1,12 +1,10 @@
 package com.app.finalapp.ui.login;
 
 import android.os.Bundle;
-
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.AppCompatImageView;
 import androidx.fragment.app.Fragment;
-
 import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -18,10 +16,8 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
-
 import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
@@ -115,6 +111,7 @@ public class LoginFragment extends Fragment {
                 hideLoadingIndicator();
                 FirebaseUser user = authManager.getCurrentUser();
                 if (user != null) {
+                    Log.d(TAG, "uuid "+user.getUid());
                     fetchUserData(user.getUid());
                     navigateBack();
                 }
@@ -125,7 +122,7 @@ public class LoginFragment extends Fragment {
                 hideLoadingIndicator();
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
             }
-                });
+        });
     }
 
     private void showLoadingIndicator() {
@@ -142,7 +139,9 @@ public class LoginFragment extends Fragment {
 
     private void navigateBack() {
         NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-        navController.popBackStack();
+        if (navController.getCurrentDestination().getId() == R.id.nav_login) {
+            navController.navigateUp();
+        }
     }
 
     private void fetchUserData(String userId) {
@@ -155,8 +154,12 @@ public class LoginFragment extends Fragment {
                     String email = snapshot.child("email").getValue(String.class);
                     String imageUrl = snapshot.child("imageUrl").getValue(String.class);
 
-                    // Update UI with user data (e.g., set name and email in navigation header)
+                    Log.d(TAG, "fetchUserData: Name: " + name + ", Email: " + email + ", ImageUrl: " + imageUrl);
+
+                    // Update UI with user data
                     updateUI(name, email, imageUrl);
+                } else {
+                    Log.d(TAG, "fetchUserData: User data does not exist for ID: " + userId);
                 }
             }
 
@@ -167,18 +170,44 @@ public class LoginFragment extends Fragment {
         });
     }
 
+
     // Method to update UI with user data
     private void updateUI(String name, String email, String imageUrl) {
-        NavigationView navigationView = requireActivity().findViewById(R.id.nav_view);
-        View headerView = navigationView.getHeaderView(0);
-        TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
-        TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
-        ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
+        if (!isAdded()) {
+            // Fragment is not attached to any activity, handle accordingly
+            return;
+        }
 
-        navUsername.setText(name);
-        navEmail.setText(email);
-        Glide.with(requireContext()).load(imageUrl).into(navImageView);
+        NavigationView navigationView = requireActivity().findViewById(R.id.nav_view);
+        if (navigationView != null) {
+            View headerView = navigationView.getHeaderView(0);
+            TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
+            TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
+            ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
+
+            if (navUsername != null) {
+                navUsername.setText(name);
+            } else {
+                Log.e(TAG, "navUsername is null");
+            }
+
+            if (navEmail != null) {
+                navEmail.setText(email);
+            } else {
+                Log.e(TAG, "navEmail is null");
+            }
+
+            if (navImageView != null) {
+                Glide.with(requireContext()).load(imageUrl).into(navImageView);
+            } else {
+                Log.e(TAG, "navImageView is null");
+            }
+        } else {
+            Log.e(TAG, "NavigationView is null");
+        }
     }
+
+
     private boolean isNetworkConnected() {
         // Check network connectivity
         // Implement your network connectivity check here

@@ -16,10 +16,18 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.R;
 import com.app.finalapp.ui.login.LoginViewModel;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 public class AdoptionFragment extends Fragment {
+    private AuthenticationManager authManager;
 
     private AdoptionViewModel mViewModel;
     private NavController navController; // Declare NavController
@@ -32,6 +40,7 @@ public class AdoptionFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_adoption, container, false);
+        authManager = new AuthenticationManager(); // Initialize AuthenticationManager
 
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
         mViewModel = new ViewModelProvider(this).get(AdoptionViewModel.class);
@@ -48,8 +57,36 @@ public class AdoptionFragment extends Fragment {
     }
 
     private void enableAdoptionFeatures() {
-        // Implement logic to enable adoption-related features
-        // For example, enable buttons, display content, etc.
+        FirebaseUser user = authManager.getCurrentUser();
+        if (user != null) {
+            Log.d("AdoptionFragment", "uuid " + user.getUid());
+            fetchUserData(user.getUid());
+        } else Log.d("AdoptionFragment", "uuid is empty " + user.getUid());
+
+    }
+
+    private void fetchUserData(String userId) {
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
+        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String name = snapshot.child("name").getValue(String.class);
+                    String email = snapshot.child("email").getValue(String.class);
+                    String imageUrl = snapshot.child("imageUrl").getValue(String.class);
+
+                    Log.d("AdoptionFragment", "fetchUserData: Name: " + name + ", Email: " + email + ", ImageUrl: " + imageUrl);
+
+                } else {
+                    Log.d("AdoptionFragment", "fetchUserData: User data does not exist for ID: " + userId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("AdoptionFragment", "Failed to fetch user data: " + error.getMessage());
+            }
+        });
     }
 
     @Override
