@@ -19,6 +19,7 @@ import android.widget.Toast;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import com.app.finalapp.AuthenticationManager;
+import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
 import com.google.android.material.navigation.NavigationView;
@@ -39,6 +40,7 @@ public class LoginFragment extends Fragment {
     private EditText emailLogin, passwordLogin;
     private AppCompatImageView togglePassword;
     private View rootView;
+    private NavigationManager navigationManager;
 
     public static LoginFragment newInstance() {
         return new LoginFragment();
@@ -90,6 +92,8 @@ public class LoginFragment extends Fragment {
                 Navigation.findNavController(v).navigate(R.id.action_nav_login_to_nav_register);
             });
         }
+        navigationManager = NavigationManager.getInstance();
+
         return rootView;
     }
 
@@ -139,8 +143,9 @@ public class LoginFragment extends Fragment {
 
     private void navigateBack() {
         NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-        if (navController.getCurrentDestination().getId() == R.id.nav_login) {
-            navController.navigateUp();
+        if (navigationManager.getAdoptionFragmentId() != null) {
+            navController.navigate(navigationManager.getAdoptionFragmentId());
+            navigationManager.setAdoptionFragmentId(null);
         }
     }
 

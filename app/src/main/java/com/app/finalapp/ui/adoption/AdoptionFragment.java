@@ -17,6 +17,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import com.app.finalapp.AuthenticationManager;
+import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
 import com.app.finalapp.ui.login.LoginViewModel;
 import com.google.firebase.auth.FirebaseUser;
@@ -28,9 +29,9 @@ import com.google.firebase.database.ValueEventListener;
 
 public class AdoptionFragment extends Fragment {
     private AuthenticationManager authManager;
-
     private AdoptionViewModel mViewModel;
     private NavController navController; // Declare NavController
+    private NavigationManager navigationManager;
 
     public static AdoptionFragment newInstance() {
         return new AdoptionFragment();
@@ -49,9 +50,11 @@ public class AdoptionFragment extends Fragment {
             if (isLoggedIn) {
                 enableAdoptionFeatures();
             } else {
+                navigationManager.setAdoptionFragmentId(R.id.nav_adopt);
                 navController.navigate(R.id.nav_login);
             }
         });
+        navigationManager = NavigationManager.getInstance();
 
         return rootView;
     }
