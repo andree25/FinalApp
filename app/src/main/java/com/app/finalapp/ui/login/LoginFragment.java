@@ -1,10 +1,8 @@
 package com.app.finalapp.ui.login;
 
+import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.widget.AppCompatImageView;
-import androidx.fragment.app.Fragment;
 import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -16,8 +14,14 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.AppCompatImageView;
+import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+
 import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
@@ -30,8 +34,8 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
+
+import java.lang.ref.WeakReference;
 
 public class LoginFragment extends Fragment {
     private static final String TAG = "LoginFragment";
@@ -46,7 +50,12 @@ public class LoginFragment extends Fragment {
         return new LoginFragment();
     }
 
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        Log.d(TAG, "Fragment attached to activity");
 
+    }
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -149,18 +158,25 @@ public class LoginFragment extends Fragment {
         }
     }
 
+
     private void fetchUserData(String userId) {
+        WeakReference<Activity> activityRef = new WeakReference<>(requireActivity());
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
         userRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Activity activity = activityRef.get();
+                if (activity == null || activity.isFinishing()) {
+                    Log.e(TAG, "Activity is null or finishing");
+                    return;
+                }
+
                 if (snapshot.exists()) {
                     String name = snapshot.child("name").getValue(String.class);
                     String email = snapshot.child("email").getValue(String.class);
                     String imageUrl = snapshot.child("imageUrl").getValue(String.class);
 
                     Log.d(TAG, "fetchUserData: Name: " + name + ", Email: " + email + ", ImageUrl: " + imageUrl);
-
                     // Update UI with user data
                     updateUI(name, email, imageUrl);
                 } else {
@@ -176,41 +192,51 @@ public class LoginFragment extends Fragment {
     }
 
 
+
     // Method to update UI with user data
     private void updateUI(String name, String email, String imageUrl) {
-        if (!isAdded()) {
-            // Fragment is not attached to any activity, handle accordingly
-            return;
-        }
+        Log.d(TAG, "Updating UI with user data");
 
         NavigationView navigationView = requireActivity().findViewById(R.id.nav_view);
         if (navigationView != null) {
+            Log.d(TAG, "NavigationView found");
+
             View headerView = navigationView.getHeaderView(0);
-            TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
-            TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
-            ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
+            if (headerView != null) {
+                Log.d(TAG, "Header view found");
 
-            if (navUsername != null) {
-                navUsername.setText(name);
-            } else {
-                Log.e(TAG, "navUsername is null");
-            }
+                TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
+                TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
+                ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
+                Log.d(TAG, "updateui id's are taken as expected "+navUsername + " "+navEmail+" "+navImageView);
+                if (navUsername != null) {
+                    navUsername.setText(name);
+                    Log.d(TAG, "Username set: " + name);
+                } else {
+                    Log.e(TAG, "navUsername is null");
+                }
 
-            if (navEmail != null) {
-                navEmail.setText(email);
-            } else {
-                Log.e(TAG, "navEmail is null");
-            }
+                if (navEmail != null) {
+                    navEmail.setText(email);
+                    Log.d(TAG, "Email set: " + email);
+                } else {
+                    Log.e(TAG, "navEmail is null");
+                }
 
-            if (navImageView != null) {
-                Glide.with(requireContext()).load(imageUrl).into(navImageView);
+                if (navImageView != null) {
+                    Glide.with(requireContext()).load(imageUrl).into(navImageView);
+                    Log.d(TAG, "Image loaded into navImageView");
+                } else {
+                    Log.e(TAG, "navImageView is null");
+                }
             } else {
-                Log.e(TAG, "navImageView is null");
+                Log.e(TAG, "Header view is null");
             }
         } else {
             Log.e(TAG, "NavigationView is null");
         }
     }
+
 
 
     private boolean isNetworkConnected() {
