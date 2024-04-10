@@ -156,7 +156,7 @@ public class RegisterFragment extends Fragment {
 
                 // Navigate back
                 NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-                navController.popBackStack();
+                navController.navigate(R.id.action_nav_register_to_nav_login);
             }
 
             @Override

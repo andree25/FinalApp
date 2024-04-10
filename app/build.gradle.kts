@@ -15,6 +15,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        manifestPlaceholders["appScheme"] = "com.app.finalapp.braintree"
+
     }
 
     buildTypes {
@@ -53,4 +55,9 @@ dependencies {
     implementation (libs.firebase.database)
     implementation(libs.glide)
     annotationProcessor(libs.compiler)
+    implementation (libs.play.services.wallet)
+    implementation (libs.braintree)
+    implementation (libs.okhttp)
+
+
 }
