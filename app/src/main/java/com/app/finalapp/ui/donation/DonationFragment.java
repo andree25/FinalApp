@@ -12,35 +12,24 @@ import android.widget.EditText;
 
 import com.app.finalapp.R;
 import com.braintreepayments.api.BraintreeFragment;
-import com.braintreepayments.api.exceptions.ErrorWithResponse;
+import com.braintreepayments.api.exceptions.InvalidArgumentException;
 import com.braintreepayments.api.interfaces.BraintreeCancelListener;
 import com.braintreepayments.api.interfaces.BraintreeErrorListener;
 import com.braintreepayments.api.interfaces.PaymentMethodNonceCreatedListener;
 import com.braintreepayments.api.models.PayPalRequest;
 import com.braintreepayments.api.models.PaymentMethodNonce;
 import com.braintreepayments.api.PayPal;
-import com.braintreepayments.api.exceptions.InvalidArgumentException;
-import com.google.firebase.database.annotations.NotNull;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.functions.FirebaseFunctions;
+import com.google.firebase.functions.HttpsCallableResult;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-
-import java.io.IOException;
-import java.util.Objects;
+import java.util.HashMap;
+import java.util.Map;
 
 public class DonationFragment extends Fragment implements PaymentMethodNonceCreatedListener {
     private static final String TAG = "DonationFragment";
-    private static final String SERVER_BASE_URL = "http://192.168.100.164:3000/";
-    private static final String GET_CLIENT_TOKEN_ENDPOINT = "client_token";
-    private static final String CHECKOUT_ENDPOINT = "checkout";
     private BraintreeFragment mBraintreeFragment;
     private EditText amountEdt;
 
@@ -60,7 +49,6 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
                 initiatePayment(amount);
             } else {
                 Log.e(TAG, "onClick: Amount is empty.");
-                // Handle empty amount case
             }
         });
 
@@ -68,132 +56,58 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
     }
 
     private void fetchClientToken() {
-        Log.d(TAG, "fetchClientToken: Fetching client token.");
-        OkHttpClient client = new OkHttpClient(); // Initialize OkHttpClient here
-        String url = SERVER_BASE_URL + GET_CLIENT_TOKEN_ENDPOINT;
-
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                Log.e(TAG, "fetchClientToken - onFailure: Failed to fetch client token", e);
-            }
-
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    String responseBody = Objects.requireNonNull(response.body()).string();
-                    Log.d(TAG, "fetchClientToken - onResponse: Client token fetched successfully.");
-                    try {
-                        JSONObject jsonResponse = new JSONObject(responseBody);
-                        String clientToken = jsonResponse.getString("clientToken");
-                        getActivity().runOnUiThread(() -> setupBraintree(clientToken));
-                    } catch (JSONException e) {
-                        Log.e(TAG, "fetchClientToken - onResponse: Failed to parse client token JSON", e);
-                    }
-                } else {
-                    Log.e(TAG, "fetchClientToken - onResponse: Failed to fetch client token. Response not successful");
-                }
-            }
-        });
+        FirebaseFunctions.getInstance()
+                .getHttpsCallable("generateClientToken")
+                .call()
+                .addOnSuccessListener(httpsCallableResult -> {
+                    // Here, 'httpsCallableResult.getData()' returns an Object which is actually a Map
+                    Map<String, Object> result = (Map<String, Object>) httpsCallableResult.getData();
+                    // Now, extract the clientToken from the Map
+                    String clientToken = (String) result.get("clientToken");
+                    setupBraintree(clientToken);
+                })
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to fetch client token", e));
     }
 
     private void setupBraintree(String clientToken) {
-        Log.d(TAG, "setupBraintree: Setting up Braintree with client token.");
-        getActivity().runOnUiThread(() -> {
-            try {
-                mBraintreeFragment = BraintreeFragment.newInstance(getActivity(), clientToken);
-                mBraintreeFragment.addListener(this); // You're already adding this listener
-
-                // Adding error listener
-                mBraintreeFragment.addListener(new BraintreeErrorListener() {
-                    @Override
-                    public void onError(Exception error) {
-                        if (error instanceof ErrorWithResponse) {
-                            ErrorWithResponse errorWithResponse = (ErrorWithResponse) error;
-                            String errorMessage = errorWithResponse.getErrorResponse();
-                            Log.e(TAG, "BraintreeError: " + errorMessage);
-                        } else {
-                            Log.e(TAG, "BraintreeError: " + error.getMessage(), error);
-                        }
-                    }
-                });
-
-                // Adding cancel listener
-                mBraintreeFragment.addListener(new BraintreeCancelListener() {
-                    @Override
-                    public void onCancel(int requestCode) {
-                        Log.d(TAG, "User canceled the payment.");
-                    }
-                });
-
-                Log.d(TAG, "setupBraintree: BraintreeFragment initialized successfully.");
-            } catch (InvalidArgumentException e) {
-                Log.e(TAG, "setupBraintree: Error initializing BraintreeFragment.", e);
-            }
-        });
+        try {
+            mBraintreeFragment = BraintreeFragment.newInstance(getActivity(), clientToken);
+            mBraintreeFragment.addListener(this);
+            mBraintreeFragment.addListener((BraintreeErrorListener) error -> {
+                if (error instanceof Exception) {
+                    Log.e(TAG, "BraintreeError: ", error);
+                }
+            });
+            mBraintreeFragment.addListener((BraintreeCancelListener) requestCode -> Log.d(TAG, "User canceled the payment."));
+        } catch (InvalidArgumentException e) {
+            Log.e(TAG, "Error initializing BraintreeFragment.", e);
+        }
     }
-
 
     @Override
     public void onPaymentMethodNonceCreated(PaymentMethodNonce paymentMethodNonce) {
-        Log.d(TAG, "onPaymentMethodNonceCreated: Nonce created.");
         String nonce = paymentMethodNonce.getNonce();
         String amount = amountEdt.getText().toString().trim();
         if (!amount.isEmpty()) {
-            Log.d(TAG, "onPaymentMethodNonceCreated: Posting nonce to server.");
             postNonceToServer(nonce, amount);
         }
     }
 
     private void initiatePayment(String amount) {
-        Log.d(TAG, "initiatePayment: Initiating payment.");
-        if (mBraintreeFragment == null) {
-            Log.e(TAG, "BraintreeFragment is not initialized.");
-            return;
-        }
         PayPal.requestOneTimePayment(mBraintreeFragment, new PayPalRequest(amount));
     }
 
     private void postNonceToServer(String nonce, String amount) {
-        Log.d(TAG, "postNonceToServer: Posting nonce to server.");
-        OkHttpClient client = new OkHttpClient();
-        String url = SERVER_BASE_URL + CHECKOUT_ENDPOINT;
+        // Prepare data to send
+        Map<String, Object> data = new HashMap<>();
+        data.put("paymentMethodNonce", nonce);
+        data.put("amount", amount);
 
-        JSONObject postData = new JSONObject();
-        try {
-            postData.put("paymentMethodNonce", nonce);
-            postData.put("amount", amount);
-        } catch (JSONException e) {
-            Log.e(TAG, "postNonceToServer: JSON Exception", e);
-            return;
-        }
-
-        RequestBody body = RequestBody.create(postData.toString(), MediaType.parse("application/json; charset=utf-8"));
-        Request request = new Request.Builder()
-                .url(url)
-                .post(body)
-                .header("Content-Type", "application/json")
-                .build();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NotNull Call call, @NotNull IOException e) {
-                Log.e(TAG, "postNonceToServer - onFailure: Failed to post nonce to server", e);
-            }
-
-            @Override
-            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
-                if (response.isSuccessful()) {
-                    Log.d(TAG, "postNonceToServer - onResponse: Nonce posted successfully, transaction created.");
-                } else {
-                    Log.e(TAG, "postNonceToServer - onResponse: Failed to post nonce. Response not successful.");
-                }
-            }
-        });
+        FirebaseFunctions.getInstance()
+                .getHttpsCallable("processPayment")
+                .call(data)
+                .addOnSuccessListener(httpsCallableResult -> Log.d(TAG, "Payment processed successfully"))
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to process payment", e));
     }
+
 }

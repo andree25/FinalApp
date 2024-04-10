@@ -4,6 +4,7 @@ braintree = "3.20.1"
 braintreeJava = "3.14.0"
 firebaseAuth = "22.3.1"
 firebaseBom = "32.7.4"
+firebaseFunctions = "20.4.0"
 firebaseStorage = "20.3.0"
 glide = "4.14.2"
 junit = "4.13.2"
@@ -28,6 +29,7 @@ compiler = { module = "com.github.bumptech.glide:compiler", version.ref = "glide
 firebase-auth = { module = "com.google.firebase:firebase-auth", version.ref = "firebaseAuth" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-database = { module = "com.google.firebase:firebase-database", version.ref = "firebaseStorage" }
+firebase-functions = { module = "com.google.firebase:firebase-functions", version.ref = "firebaseFunctions" }
 firebase-storage = { module = "com.google.firebase:firebase-storage", version.ref = "firebaseStorage" }
 glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

@@ -53,6 +53,7 @@ dependencies {
     implementation (libs.firebase.auth)
     implementation (libs.firebase.storage)
     implementation (libs.firebase.database)
+    implementation (libs.firebase.functions)
     implementation(libs.glide)
     annotationProcessor(libs.compiler)
     implementation (libs.play.services.wallet)
