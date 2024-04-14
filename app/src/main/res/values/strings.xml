@@ -32,4 +32,7 @@
     <string name="photo">Add photo</string>
     <string name="new_profile">Create profile</string>
 
+    <!--Donation Page-->
+    <string name="donation_title">This week\'s donation is made to:</string>
+    <string name="target">Donation Target:</string>
 </resources>

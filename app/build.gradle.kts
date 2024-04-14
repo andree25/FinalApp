@@ -59,6 +59,8 @@ dependencies {
     implementation (libs.play.services.wallet)
     implementation (libs.braintree)
     implementation (libs.okhttp)
+    implementation (libs.cardview)
+
 
 
 }
