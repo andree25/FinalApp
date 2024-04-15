@@ -2,8 +2,10 @@ package com.app.finalapp.ui.register;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.widget.AppCompatImageView;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -16,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,21 +27,28 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.app.finalapp.AuthenticationManager;
+import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
+import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +61,7 @@ public class RegisterFragment extends Fragment {
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
     private ImageView imageView;
+    private NavigationManager navigationManager;
 
     private ActivityResultLauncher<String> launcher;
 
@@ -59,7 +70,6 @@ public class RegisterFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_register, container, false);
         viewModel = new ViewModelProvider(this).get(RegisterViewModel.class);
         authManager = new AuthenticationManager();
-        // Initialize UI elements
         Button pickButton = root.findViewById(R.id.pickimage);
         imageView = root.findViewById(R.id.imageView_picker);
         nameEditText = root.findViewById(R.id.registername);
@@ -67,13 +77,38 @@ public class RegisterFragment extends Fragment {
         emailEditText = root.findViewById(R.id.registeremail);
         passwordEditText = root.findViewById(R.id.registerpassword);
         confirmPasswordEditText = root.findViewById(R.id.registerconfirmpass);
+        AppCompatImageView togglePasswordRegister = root.findViewById(R.id.togglePasswordRegister);
+        AppCompatImageView togglePasswordRegisterC = root.findViewById(R.id.togglePasswordRegisterc);
+        navigationManager = NavigationManager.getInstance();
 
-        // Initialize Firebase Authentication
         mAuth = FirebaseAuth.getInstance();
 
-        // Initialize Firebase Database
         mDatabase = FirebaseDatabase.getInstance().getReference().child(USERS_NODE);
 
+        togglePasswordRegister.setOnClickListener(view -> {
+            int inputType = passwordEditText.getInputType();
+            int cursorPosition = passwordEditText.getSelectionStart();
+
+            int newInputType = inputType == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                    ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
+                    : InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+
+            passwordEditText.setInputType(newInputType);
+
+            passwordEditText.setSelection(cursorPosition);
+        });
+        togglePasswordRegisterC.setOnClickListener(view -> {
+            int inputType = confirmPasswordEditText.getInputType();
+            int cursorPosition = confirmPasswordEditText.getSelectionStart();
+
+            int newInputType = inputType == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                    ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD
+                    : InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD;
+
+            confirmPasswordEditText.setInputType(newInputType);
+
+            confirmPasswordEditText.setSelection(cursorPosition);
+        });
         // Initialize ActivityResultLauncher for image picking
         launcher = registerForActivityResult(new ActivityResultContracts.GetContent(), result -> {
             if (result != null) {
@@ -153,10 +188,12 @@ public class RegisterFragment extends Fragment {
             public void onSuccess() {
                 // Hide the progress bar
                 hideProgressBar();
-
-                // Navigate back
-                NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-                navController.navigate(R.id.action_nav_register_to_nav_login);
+                FirebaseUser user = authManager.getCurrentUser();
+                if (user != null) {
+                    Log.d("RegisterFragment", "uuid " + user.getUid());
+                    fetchUserData(user.getUid());
+                    navigateBack();
+                }
             }
 
             @Override
@@ -194,6 +231,89 @@ public class RegisterFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    private void navigateBack() {
+        NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
+        if (navigationManager.getAdoptionFragmentId() != null) {
+            navController.navigate(navigationManager.getAdoptionFragmentId());
+            navigationManager.setAdoptionFragmentId(null);
+        }
+    }
+
+    private void fetchUserData(String userId) {
+        WeakReference<Activity> activityRef = new WeakReference<>(requireActivity());
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
+        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                Activity activity = activityRef.get();
+                if (activity == null || activity.isFinishing()) {
+                    Log.e("RegisterFragment", "Activity is null or finishing");
+                    return;
+                }
+
+                if (snapshot.exists()) {
+                    String name = snapshot.child("name").getValue(String.class);
+                    String email = snapshot.child("email").getValue(String.class);
+                    String imageUrl = snapshot.child("imageUrl").getValue(String.class);
+
+                    Log.d("RegisterFragment", "fetchUserData: Name: " + name + ", Email: " + email + ", ImageUrl: " + imageUrl);
+                    // Update UI with user data
+                    updateUI(name, email, imageUrl);
+                } else {
+                    Log.d("RegisterFragment", "fetchUserData: User data does not exist for ID: " + userId);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Log.e("RegisterFragment", "Failed to fetch user data: " + error.getMessage());
+            }
+        });
+    }
+
+    private void updateUI(String name, String email, String imageUrl) {
+        Log.d("RegisterFragment", "Updating UI with user data");
+
+        NavigationView navigationView = requireActivity().findViewById(R.id.nav_view);
+        if (navigationView != null) {
+            Log.d("RegisterFragment", "NavigationView found");
+
+            View headerView = navigationView.getHeaderView(0);
+            if (headerView != null) {
+                Log.d("RegisterFragment", "Header view found");
+
+                TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
+                TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
+                ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
+                Log.d("RegisterFragment", "updateui id's are taken as expected " + navUsername + " " + navEmail + " " + navImageView);
+                if (navUsername != null) {
+                    navUsername.setText(name);
+                    Log.d("RegisterFragment", "Username set: " + name);
+                } else {
+                    Log.e("RegisterFragment", "navUsername is null");
+                }
+
+                if (navEmail != null) {
+                    navEmail.setText(email);
+                    Log.d("RegisterFragment", "Email set: " + email);
+                } else {
+                    Log.e("RegisterFragment", "navEmail is null");
+                }
+
+                if (navImageView != null) {
+                    Glide.with(requireContext()).load(imageUrl).into(navImageView);
+                    Log.d("RegisterFragment", "Image loaded into navImageView");
+                } else {
+                    Log.e("RegisterFragment", "navImageView is null");
+                }
+            } else {
+                Log.e("RegisterFragment", "Header view is null");
+            }
+        } else {
+            Log.e("RegisterFragment", "NavigationView is null");
         }
     }
 

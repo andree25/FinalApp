@@ -5,7 +5,7 @@
     <string name="nav_header_title">Oscar\'s App</string>
     <string name="nav_header_subtitle">oscar@app.com</string>
     <string name="nav_header_desc">Navigation header</string>
-    <string name="action_settings">Settings</string>
+    <string name="action_logout">Logout</string>
 
     <!-- Menu Items -->
     <string name="menu_home">Home</string>
@@ -35,4 +35,5 @@
     <!--Donation Page-->
     <string name="donation_title">This week\'s donation is made to:</string>
     <string name="target">Donation Target:</string>
+    <string name="donation_hint">Donation Amount $ </string>
 </resources>
