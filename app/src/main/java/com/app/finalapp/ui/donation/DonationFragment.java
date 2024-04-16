@@ -1,6 +1,8 @@
 package com.app.finalapp.ui.donation;
 
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 
 import android.os.Bundle;
 import android.util.Log;
@@ -9,7 +11,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 
+import com.app.finalapp.AuthenticationManager;
+import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
 import com.braintreepayments.api.BraintreeFragment;
 import com.braintreepayments.api.exceptions.InvalidArgumentException;
@@ -26,12 +32,20 @@ import com.google.firebase.functions.HttpsCallableResult;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 public class DonationFragment extends Fragment implements PaymentMethodNonceCreatedListener {
     private static final String TAG = "DonationFragment";
     private BraintreeFragment mBraintreeFragment;
     private EditText amountEdt;
+    private AuthenticationManager authManager;
+    private NavController navController;
+    private NavigationManager navigationManager;
+    private ProgressBar progressBar;
+    private TextView tvCollected, tvTarget;
+    private int targetAmount = 1000;
+    private int currentAmount = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -42,17 +56,48 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
 
         fetchClientToken();
 
-        donateButton.setOnClickListener(v -> {
-            String amount = amountEdt.getText().toString().trim();
-            if (!amount.isEmpty()) {
-                Log.d(TAG, "onClick: Initiating payment with amount: " + amount);
-                initiatePayment(amount);
-            } else {
-                Log.e(TAG, "onClick: Amount is empty.");
-            }
-        });
+        authManager = new AuthenticationManager();
+        navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
+        navigationManager = NavigationManager.getInstance();
+
+        // Check if user is logged in
+        if (authManager.getCurrentUser() != null) {
+            fetchClientToken();
+            donateButton.setOnClickListener(v -> {
+                String amount = amountEdt.getText().toString().trim();
+                if (!amount.isEmpty()) {
+                    Log.d(TAG, "onClick: Initiating payment with amount: " + amount);
+                    initiatePayment(amount);
+                    currentAmount += 100; // Simulate a donation of $100
+                    updateProgress();
+                } else {
+                    Log.e(TAG, "onClick: Amount is empty.");
+                }
+            });
+        } else {
+            navController.navigate(R.id.nav_login);
+        }
+
+        progressBar = view.findViewById(R.id.progressDonation);
+        tvCollected = view.findViewById(R.id.donationTargetSum);
+        tvTarget = view.findViewById(R.id.initialtarget);
+
+        tvTarget.setText(String.format(Locale.getDefault(), "Target: $%d", targetAmount));
+        updateProgress();
 
         return view;
+    }
+
+    private void updateProgress() {
+        tvCollected.setText(String.format(Locale.getDefault(), "Collected: $%d", currentAmount));
+        int progress = (int) ((currentAmount / (float) targetAmount) * 100);
+        progressBar.setProgress(progress);
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        NavigationManager.getInstance().pushFragmentId(R.id.nav_donate); // Correct place to push the ID
     }
 
     private void fetchClientToken() {

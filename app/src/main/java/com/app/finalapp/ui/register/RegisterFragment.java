@@ -33,6 +33,7 @@ import android.widget.Toast;
 import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
+import com.app.finalapp.ui.BaseFragment;
 import com.bumptech.glide.Glide;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -52,7 +53,7 @@ import java.lang.ref.WeakReference;
 import java.util.HashMap;
 import java.util.Map;
 
-public class RegisterFragment extends Fragment {
+public class RegisterFragment extends BaseFragment {
     private AuthenticationManager authManager;
 
     private RegisterViewModel viewModel;
@@ -231,89 +232,6 @@ public class RegisterFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
             return null;
-        }
-    }
-
-    private void navigateBack() {
-        NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-        if (navigationManager.getAdoptionFragmentId() != null) {
-            navController.navigate(navigationManager.getAdoptionFragmentId());
-            navigationManager.setAdoptionFragmentId(null);
-        }
-    }
-
-    private void fetchUserData(String userId) {
-        WeakReference<Activity> activityRef = new WeakReference<>(requireActivity());
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
-        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Activity activity = activityRef.get();
-                if (activity == null || activity.isFinishing()) {
-                    Log.e("RegisterFragment", "Activity is null or finishing");
-                    return;
-                }
-
-                if (snapshot.exists()) {
-                    String name = snapshot.child("name").getValue(String.class);
-                    String email = snapshot.child("email").getValue(String.class);
-                    String imageUrl = snapshot.child("imageUrl").getValue(String.class);
-
-                    Log.d("RegisterFragment", "fetchUserData: Name: " + name + ", Email: " + email + ", ImageUrl: " + imageUrl);
-                    // Update UI with user data
-                    updateUI(name, email, imageUrl);
-                } else {
-                    Log.d("RegisterFragment", "fetchUserData: User data does not exist for ID: " + userId);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e("RegisterFragment", "Failed to fetch user data: " + error.getMessage());
-            }
-        });
-    }
-
-    private void updateUI(String name, String email, String imageUrl) {
-        Log.d("RegisterFragment", "Updating UI with user data");
-
-        NavigationView navigationView = requireActivity().findViewById(R.id.nav_view);
-        if (navigationView != null) {
-            Log.d("RegisterFragment", "NavigationView found");
-
-            View headerView = navigationView.getHeaderView(0);
-            if (headerView != null) {
-                Log.d("RegisterFragment", "Header view found");
-
-                TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
-                TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
-                ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
-                Log.d("RegisterFragment", "updateui id's are taken as expected " + navUsername + " " + navEmail + " " + navImageView);
-                if (navUsername != null) {
-                    navUsername.setText(name);
-                    Log.d("RegisterFragment", "Username set: " + name);
-                } else {
-                    Log.e("RegisterFragment", "navUsername is null");
-                }
-
-                if (navEmail != null) {
-                    navEmail.setText(email);
-                    Log.d("RegisterFragment", "Email set: " + email);
-                } else {
-                    Log.e("RegisterFragment", "navEmail is null");
-                }
-
-                if (navImageView != null) {
-                    Glide.with(requireContext()).load(imageUrl).into(navImageView);
-                    Log.d("RegisterFragment", "Image loaded into navImageView");
-                } else {
-                    Log.e("RegisterFragment", "navImageView is null");
-                }
-            } else {
-                Log.e("RegisterFragment", "Header view is null");
-            }
-        } else {
-            Log.e("RegisterFragment", "NavigationView is null");
         }
     }
 

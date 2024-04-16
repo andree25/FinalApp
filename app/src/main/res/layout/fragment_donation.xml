@@ -4,12 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/colorSecondary"
     android:orientation="vertical"
     android:padding="16dp">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:background="@color/white">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -18,10 +20,11 @@
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardView_image"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_margin="10dp"
                 android:layout_weight="1"
+                app:cardBackgroundColor="@color/colorAccent"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="20dp">
 
@@ -36,7 +39,9 @@
                         android:layout_below="@+id/snowImage"
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="10dp"
+                        android:fontFamily="@font/lato_bold"
                         android:text="@string/donation_title"
+                        android:textColor="@color/grey1"
                         android:textSize="20sp" />
 
                     <TextView
@@ -46,8 +51,10 @@
                         android:layout_below="@+id/donationsTitle"
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="10dp"
+                        android:fontFamily="@font/lato"
                         android:text="Will be added by Admin"
-                        android:textSize="15sp" />
+                        android:textColor="@color/grey1"
+                        android:textSize="17sp" />
 
                     <ImageView
                         android:id="@+id/snowImage"
@@ -56,7 +63,7 @@
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="15dp"
                         android:scaleType="fitXY"
-                        android:src="@drawable/snow_new2" />
+                        android:src="@drawable/snow_new3" />
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
 
@@ -66,6 +73,7 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="10dp"
                 android:layout_weight="1"
+                app:cardBackgroundColor="@color/colorAccent"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="20dp">
 
@@ -74,21 +82,38 @@
                     android:layout_height="wrap_content">
 
                     <TextView
-                        android:id="@+id/textView"
+                        android:id="@+id/initialtarget"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="10dp"
-                        android:text="@string/target" />
+                        android:fontFamily="@font/lato"
+                        android:text="@string/target"
+                        android:textColor="@color/grey1"
+                        android:textSize="15dp"/>
 
                     <ProgressBar
-                        android:id="@+id/progressBar"
+                        android:id="@+id/progressDonation"
                         style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_below="@+id/textView" />
+                        android:max="100"
+                        android:progress="0"
+                        android:progressDrawable="@drawable/custom_progress"
+                        android:layout_marginTop="35dp" />
 
+                    <TextView
+                        android:id="@+id/donationTargetSum"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_marginTop="55dp"
+                        android:fontFamily="@font/lato"
+                        android:text="@string/sum_target"
+                        android:textColor="@color/grey1" />
                 </RelativeLayout>
+
+
             </androidx.cardview.widget.CardView>
 
             <androidx.cardview.widget.CardView
@@ -97,6 +122,7 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="10dp"
                 android:layout_weight="1"
+                app:cardBackgroundColor="@color/colorAccent"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="20dp">
 
@@ -108,14 +134,18 @@
                         android:id="@+id/amountEdt"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:fontFamily="@font/lato"
                         android:hint="@string/donation_hint"
-                        android:inputType="numberDecimal" />
+                        android:inputType="numberDecimal"
+                        android:textColorHint="@color/grey1" />
 
                     <Button
                         android:id="@+id/donateButton"
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_below="@+id/amountEdt"
+                        android:layout_centerInParent="true"
+                        android:layout_marginTop="-1dp"
                         android:alpha="100"
                         android:background="@drawable/button"
                         android:text="Donate" />

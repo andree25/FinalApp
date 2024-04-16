@@ -25,6 +25,7 @@ import androidx.navigation.Navigation;
 import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
+import com.app.finalapp.ui.BaseFragment;
 import com.bumptech.glide.Glide;
 import com.google.android.material.navigation.NavigationView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -37,7 +38,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.lang.ref.WeakReference;
 
-public class LoginFragment extends Fragment {
+public class LoginFragment extends BaseFragment {
     private static final String TAG = "LoginFragment";
     private FirebaseAuth mAuth;
     private AuthenticationManager authManager;
@@ -56,6 +57,7 @@ public class LoginFragment extends Fragment {
         Log.d(TAG, "Fragment attached to activity");
 
     }
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -124,7 +126,7 @@ public class LoginFragment extends Fragment {
                 hideLoadingIndicator();
                 FirebaseUser user = authManager.getCurrentUser();
                 if (user != null) {
-                    Log.d(TAG, "uuid "+user.getUid());
+                    Log.d(TAG, "uuid " + user.getUid());
                     fetchUserData(user.getUid());
                     navigateBack();
                 }
@@ -149,95 +151,6 @@ public class LoginFragment extends Fragment {
         ProgressBar loadingIndicator = rootView.findViewById(R.id.loadingIndicator);
         loadingIndicator.setVisibility(View.GONE);
     }
-
-    private void navigateBack() {
-        NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-        if (navigationManager.getAdoptionFragmentId() != null) {
-            navController.navigate(navigationManager.getAdoptionFragmentId());
-            navigationManager.setAdoptionFragmentId(null);
-        }
-    }
-
-
-    private void fetchUserData(String userId) {
-        WeakReference<Activity> activityRef = new WeakReference<>(requireActivity());
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference().child("users").child(userId);
-        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                Activity activity = activityRef.get();
-                if (activity == null || activity.isFinishing()) {
-                    Log.e(TAG, "Activity is null or finishing");
-                    return;
-                }
-
-                if (snapshot.exists()) {
-                    String name = snapshot.child("name").getValue(String.class);
-                    String email = snapshot.child("email").getValue(String.class);
-                    String imageUrl = snapshot.child("imageUrl").getValue(String.class);
-
-                    Log.d(TAG, "fetchUserData: Name: " + name + ", Email: " + email + ", ImageUrl: " + imageUrl);
-                    // Update UI with user data
-                    updateUI(name, email, imageUrl);
-                } else {
-                    Log.d(TAG, "fetchUserData: User data does not exist for ID: " + userId);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Log.e(TAG, "Failed to fetch user data: " + error.getMessage());
-            }
-        });
-    }
-
-
-
-    // Method to update UI with user data
-    private void updateUI(String name, String email, String imageUrl) {
-        Log.d(TAG, "Updating UI with user data");
-
-        NavigationView navigationView = requireActivity().findViewById(R.id.nav_view);
-        if (navigationView != null) {
-            Log.d(TAG, "NavigationView found");
-
-            View headerView = navigationView.getHeaderView(0);
-            if (headerView != null) {
-                Log.d(TAG, "Header view found");
-
-                TextView navUsername = headerView.findViewById(R.id.textView_name_navigation_header);
-                TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
-                ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
-                Log.d(TAG, "updateui id's are taken as expected "+navUsername + " "+navEmail+" "+navImageView);
-                if (navUsername != null) {
-                    navUsername.setText(name);
-                    Log.d(TAG, "Username set: " + name);
-                } else {
-                    Log.e(TAG, "navUsername is null");
-                }
-
-                if (navEmail != null) {
-                    navEmail.setText(email);
-                    Log.d(TAG, "Email set: " + email);
-                } else {
-                    Log.e(TAG, "navEmail is null");
-                }
-
-                if (navImageView != null) {
-                    Glide.with(requireContext()).load(imageUrl).into(navImageView);
-                    Log.d(TAG, "Image loaded into navImageView");
-                } else {
-                    Log.e(TAG, "navImageView is null");
-                }
-            } else {
-                Log.e(TAG, "Header view is null");
-            }
-        } else {
-            Log.e(TAG, "NavigationView is null");
-        }
-    }
-
-
 
     private boolean isNetworkConnected() {
         // Check network connectivity

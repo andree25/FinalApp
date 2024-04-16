@@ -35,5 +35,6 @@
     <!--Donation Page-->
     <string name="donation_title">This week\'s donation is made to:</string>
     <string name="target">Donation Target:</string>
+    <string name="sum_target">Sum added by Admin</string>
     <string name="donation_hint">Donation Amount $ </string>
 </resources>

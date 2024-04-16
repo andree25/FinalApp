@@ -1,10 +1,10 @@
-// NavigationManager.java
 package com.app.finalapp;
+
+import java.util.Stack;
 
 public class NavigationManager {
     private static NavigationManager instance;
-    private Integer adoptionFragmentId;
-    private Integer loginFragmentId;
+    private Stack<Integer> navigationStack = new Stack<>();
 
     private NavigationManager() {
         // Private constructor to prevent instantiation
@@ -17,19 +17,17 @@ public class NavigationManager {
         return instance;
     }
 
-    public Integer getAdoptionFragmentId() {
-        return adoptionFragmentId;
+    public void pushFragmentId(int fragmentId) {
+        if (!navigationStack.isEmpty() && navigationStack.peek() != fragmentId) {
+            navigationStack.push(fragmentId);
+        }
     }
 
-    public void setAdoptionFragmentId(Integer adoptionFragmentId) {
-        this.adoptionFragmentId = adoptionFragmentId;
+    public Integer popFragmentId() {
+        return !navigationStack.isEmpty() ? navigationStack.pop() : null;
     }
 
-    public Integer getLoginFragmentId() {
-        return loginFragmentId;
-    }
-
-    public void setLoginFragmentId(Integer loginFragmentId) {
-        this.loginFragmentId = loginFragmentId;
+    public Integer getCurrentFragmentId() {
+        return !navigationStack.isEmpty() ? navigationStack.peek() : null;
     }
 }
