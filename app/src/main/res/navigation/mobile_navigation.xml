@@ -64,5 +64,9 @@
             app:exitAnim="@anim/fade_out"
             app:popUpTo="@+id/nav_main"/>
     </fragment>
-
+    <fragment
+        android:id="@+id/nav_admin"
+        android:name="com.app.finalapp.ui.admin.AdminFragment"
+        android:label="@string/admin"
+        tools:layout="@layout/fragment_admin" />
 </navigation>

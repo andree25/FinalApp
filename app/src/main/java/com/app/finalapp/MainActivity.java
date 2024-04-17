@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+
         if (id == R.id.action_logout) {
             AuthenticationManager authManager = new AuthenticationManager();
             if (authManager.getCurrentUser() != null) {
@@ -89,8 +90,22 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "No user is currently logged in.", Toast.LENGTH_SHORT).show();
             }
             return true;
+        } else if (id == R.id.action_admin) {
+            // Handle admin login navigation
+            navigateToAdminLogin();
+            return true;
         }
+
         return super.onOptionsItemSelected(item);
+    }
+
+    private void navigateToAdminLogin() {
+        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+        navController.navigate(R.id.nav_login);
+        DrawerLayout drawer = binding.drawerLayout;
+        if (drawer.isDrawerOpen(GravityCompat.START)) {
+            drawer.closeDrawer(GravityCompat.START);
+        }
     }
 
     private void resetNavigationHeader() {

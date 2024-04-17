@@ -6,6 +6,7 @@
     <string name="nav_header_subtitle">oscar@app.com</string>
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_logout">Logout</string>
+    <string name="action_admin">Admin</string>
 
     <!-- Menu Items -->
     <string name="menu_home">Home</string>
@@ -37,4 +38,10 @@
     <string name="target">Donation Target:</string>
     <string name="sum_target">Sum added by Admin</string>
     <string name="donation_hint">Donation Amount $ </string>
+
+    <!--Admin Page -->
+    <string name="admin">Admin</string>
+    <string name="donation_target_hint">Target Amount $</string>
+    <string name="donation_cause_name_hint">Cause / Organization name</string>
+
 </resources>

@@ -28,6 +28,11 @@ import com.braintreepayments.api.PayPal;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.functions.HttpsCallableResult;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.database.DatabaseError;
 
 import org.json.JSONObject;
 
@@ -44,7 +49,7 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
     private NavigationManager navigationManager;
     private ProgressBar progressBar;
     private TextView tvCollected, tvTarget;
-    private int targetAmount = 1000;
+    private DatabaseReference database;
     private int currentAmount = 0;
 
     @Override
@@ -53,42 +58,48 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
         View view = inflater.inflate(R.layout.fragment_donation, container, false);
         amountEdt = view.findViewById(R.id.amountEdt);
         Button donateButton = view.findViewById(R.id.donateButton);
-
-        fetchClientToken();
+        progressBar = view.findViewById(R.id.progressDonation);
+        tvCollected = view.findViewById(R.id.donationTargetSum);
+        tvTarget = view.findViewById(R.id.initialtarget);
 
         authManager = new AuthenticationManager();
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
         navigationManager = NavigationManager.getInstance();
 
-        // Check if user is logged in
-        if (authManager.getCurrentUser() != null) {
-            fetchClientToken();
-            donateButton.setOnClickListener(v -> {
-                String amount = amountEdt.getText().toString().trim();
-                if (!amount.isEmpty()) {
-                    Log.d(TAG, "onClick: Initiating payment with amount: " + amount);
-                    initiatePayment(amount);
-                    currentAmount += 100; // Simulate a donation of $100
-                    updateProgress();
-                } else {
-                    Log.e(TAG, "onClick: Amount is empty.");
+        database = FirebaseDatabase.getInstance().getReference().child("adminSettings");
+
+        database.child("target").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.exists()) {
+                    int targetAmount = dataSnapshot.getValue(Integer.class);
+                    tvTarget.setText(String.format(Locale.getDefault(), "Target: $%d", targetAmount));
+                    updateProgress(targetAmount);
                 }
-            });
-        } else {
-            navController.navigate(R.id.nav_login);
-        }
+            }
 
-        progressBar = view.findViewById(R.id.progressDonation);
-        tvCollected = view.findViewById(R.id.donationTargetSum);
-        tvTarget = view.findViewById(R.id.initialtarget);
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                Log.e(TAG, "Failed to load target amount", databaseError.toException());
+            }
+        });
 
-        tvTarget.setText(String.format(Locale.getDefault(), "Target: $%d", targetAmount));
-        updateProgress();
+        donateButton.setOnClickListener(v -> {
+            String amountString = amountEdt.getText().toString().trim();
+            if (!amountString.isEmpty()) {
+                int amount = Integer.parseInt(amountString);
+                currentAmount += amount; // Update current collected amount
+                updateProgress(currentAmount);
+                initiatePayment(amountString);
+            }
+        });
+
+        fetchClientToken();
 
         return view;
     }
 
-    private void updateProgress() {
+    private void updateProgress(int targetAmount) {
         tvCollected.setText(String.format(Locale.getDefault(), "Collected: $%d", currentAmount));
         int progress = (int) ((currentAmount / (float) targetAmount) * 100);
         progressBar.setProgress(progress);
@@ -105,9 +116,8 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
                 .getHttpsCallable("generateClientToken")
                 .call()
                 .addOnSuccessListener(httpsCallableResult -> {
-                    // Here, 'httpsCallableResult.getData()' returns an Object which is actually a Map
+                    // Extract clientToken from the data map
                     Map<String, Object> result = (Map<String, Object>) httpsCallableResult.getData();
-                    // Now, extract the clientToken from the Map
                     String clientToken = (String) result.get("clientToken");
                     setupBraintree(clientToken);
                 })
@@ -118,11 +128,7 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
         try {
             mBraintreeFragment = BraintreeFragment.newInstance(getActivity(), clientToken);
             mBraintreeFragment.addListener(this);
-            mBraintreeFragment.addListener((BraintreeErrorListener) error -> {
-                if (error instanceof Exception) {
-                    Log.e(TAG, "BraintreeError: ", error);
-                }
-            });
+            mBraintreeFragment.addListener((BraintreeErrorListener) error -> Log.e(TAG, "BraintreeError: ", error));
             mBraintreeFragment.addListener((BraintreeCancelListener) requestCode -> Log.d(TAG, "User canceled the payment."));
         } catch (InvalidArgumentException e) {
             Log.e(TAG, "Error initializing BraintreeFragment.", e);
@@ -143,7 +149,6 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
     }
 
     private void postNonceToServer(String nonce, String amount) {
-        // Prepare data to send
         Map<String, Object> data = new HashMap<>();
         data.put("paymentMethodNonce", nonce);
         data.put("amount", amount);
@@ -154,5 +159,4 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
                 .addOnSuccessListener(httpsCallableResult -> Log.d(TAG, "Payment processed successfully"))
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to process payment", e));
     }
-
 }

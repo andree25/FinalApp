@@ -120,9 +120,15 @@ public class LoginFragment extends BaseFragment {
 
         showLoadingIndicator();
 
+        if (email.equals("admin@oscar.com") && password.equals("admin1")) {
+            navigateToAdminArea();
+            hideLoadingIndicator();
+            return; // Stop further processing if it's the admin
+        }
         authManager.loginUser(email, password, requireContext(), new AuthenticationManager.AuthCallback() {
             @Override
             public void onSuccess() {
+
                 hideLoadingIndicator();
                 FirebaseUser user = authManager.getCurrentUser();
                 if (user != null) {
@@ -138,6 +144,11 @@ public class LoginFragment extends BaseFragment {
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private void navigateToAdminArea() {
+        NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
+        navController.navigate(R.id.nav_admin);
     }
 
     private void showLoadingIndicator() {
