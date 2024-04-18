@@ -17,6 +17,7 @@ import android.widget.Toast;
 
 import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.R;
+import com.app.finalapp.ui.BaseFragment;
 import com.braintreepayments.api.BraintreeFragment;
 import com.braintreepayments.api.exceptions.InvalidArgumentException;
 import com.braintreepayments.api.interfaces.BraintreeCancelListener;
@@ -33,7 +34,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class DonationFragment extends Fragment implements PaymentMethodNonceCreatedListener {
+public class DonationFragment extends BaseFragment implements PaymentMethodNonceCreatedListener {
     private static final String TAG = "DonationFragment";
     private BraintreeFragment mBraintreeFragment;
     private EditText amountEdt;
@@ -43,6 +44,7 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
     private NavController navController;
 
     private AuthenticationManager authManager;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         authManager = new AuthenticationManager();  // Initialize your AuthenticationManager
