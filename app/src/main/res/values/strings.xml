@@ -35,13 +35,14 @@
 
     <!--Donation Page-->
     <string name="donation_title">This week\'s donation is made to:</string>
-    <string name="target">Donation Target:</string>
-    <string name="sum_target">Sum added by Admin</string>
+    <string name="target">Target: $0</string>
+    <string name="sum_target">Collected: $0</string>
     <string name="donation_hint">Donation Amount $ </string>
 
     <!--Admin Page -->
     <string name="admin">Admin</string>
     <string name="donation_target_hint">Target Amount $</string>
     <string name="donation_cause_name_hint">Cause / Organization name</string>
+    <string name="reset_collected">Reset the collected amount from donations</string>
 
 </resources>

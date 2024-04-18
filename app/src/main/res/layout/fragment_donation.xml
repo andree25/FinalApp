@@ -52,7 +52,6 @@
                         android:layout_centerHorizontal="true"
                         android:layout_marginTop="10dp"
                         android:fontFamily="@font/lato"
-                        android:text="Will be added by Admin"
                         android:textColor="@color/grey1"
                         android:textSize="17sp" />
 

@@ -13,9 +13,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.app.finalapp.AuthenticationManager;
-import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
 import com.braintreepayments.api.BraintreeFragment;
 import com.braintreepayments.api.exceptions.InvalidArgumentException;
@@ -25,16 +25,9 @@ import com.braintreepayments.api.interfaces.PaymentMethodNonceCreatedListener;
 import com.braintreepayments.api.models.PayPalRequest;
 import com.braintreepayments.api.models.PaymentMethodNonce;
 import com.braintreepayments.api.PayPal;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.functions.FirebaseFunctions;
-import com.google.firebase.functions.HttpsCallableResult;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.database.DatabaseError;
-
-import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -44,84 +37,96 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
     private static final String TAG = "DonationFragment";
     private BraintreeFragment mBraintreeFragment;
     private EditText amountEdt;
-    private AuthenticationManager authManager;
-    private NavController navController;
-    private NavigationManager navigationManager;
     private ProgressBar progressBar;
-    private TextView tvCollected, tvTarget;
+    private TextView textViewCollected, textViewTarget, donationsDescription;
     private DatabaseReference database;
-    private int currentAmount = 0;
+    private NavController navController;
 
+    private AuthenticationManager authManager;
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        Log.d(TAG, "onCreateView: Initializing DonationFragment view.");
+        authManager = new AuthenticationManager();  // Initialize your AuthenticationManager
+        if (authManager.getCurrentUser() == null) {
+            // If no user is logged in, navigate to the login page
+            navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
+            navController.navigate(R.id.nav_login);
+            return null; // Return null to prevent further execution of onCreateView
+        }
+
         View view = inflater.inflate(R.layout.fragment_donation, container, false);
         amountEdt = view.findViewById(R.id.amountEdt);
         Button donateButton = view.findViewById(R.id.donateButton);
         progressBar = view.findViewById(R.id.progressDonation);
-        tvCollected = view.findViewById(R.id.donationTargetSum);
-        tvTarget = view.findViewById(R.id.initialtarget);
-
-        authManager = new AuthenticationManager();
-        navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-        navigationManager = NavigationManager.getInstance();
-
+        textViewCollected = view.findViewById(R.id.donationTargetSum);
+        textViewTarget = view.findViewById(R.id.initialtarget);
+        donationsDescription = view.findViewById(R.id.donationsDescription);
         database = FirebaseDatabase.getInstance().getReference().child("adminSettings");
-
-        database.child("target").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.exists()) {
-                    int targetAmount = dataSnapshot.getValue(Integer.class);
-                    tvTarget.setText(String.format(Locale.getDefault(), "Target: $%d", targetAmount));
-                    updateProgress(targetAmount);
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-                Log.e(TAG, "Failed to load target amount", databaseError.toException());
-            }
-        });
 
         donateButton.setOnClickListener(v -> {
             String amountString = amountEdt.getText().toString().trim();
             if (!amountString.isEmpty()) {
                 int amount = Integer.parseInt(amountString);
-                currentAmount += amount; // Update current collected amount
-                updateProgress(currentAmount);
                 initiatePayment(amountString);
             }
         });
 
         fetchClientToken();
-
+        fetchTargetAndCurrentAmount();
+        fetchCauseDescription();
         return view;
     }
 
-    private void updateProgress(int targetAmount) {
-        tvCollected.setText(String.format(Locale.getDefault(), "Collected: $%d", currentAmount));
-        int progress = (int) ((currentAmount / (float) targetAmount) * 100);
-        progressBar.setProgress(progress);
+
+    private void fetchTargetAndCurrentAmount() {
+        database.child("target").get().addOnSuccessListener(dataSnapshot -> {
+            if (dataSnapshot.exists()) {
+                int targetAmount = dataSnapshot.getValue(Integer.class);
+                textViewTarget.setText(String.format(Locale.getDefault(), "Target: $%d", targetAmount));
+                progressBar.setMax(targetAmount);
+                Log.d(TAG, "Target amount fetched successfully: " + targetAmount);
+            } else {
+                Log.e(TAG, "Target amount not found.");
+            }
+        });
+
+
+        database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
+            if (dataSnapshot.exists()) {
+                int currentAmount = dataSnapshot.getValue(Integer.class);
+                updateProgress(currentAmount);
+                Log.d(TAG, "Current amount fetched successfully: " + currentAmount);
+            } else {
+                Log.e(TAG, "Current amount not found.");
+                textViewCollected.setText(String.format(Locale.getDefault(), "Collected: $0"));
+                progressBar.setProgress(0);
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching data: " + e.getMessage());
+            textViewCollected.setText(String.format(Locale.getDefault(), "Collected: $0"));
+            progressBar.setProgress(0);
+        });
     }
 
-    @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        NavigationManager.getInstance().pushFragmentId(R.id.nav_donate); // Correct place to push the ID
+    private void fetchCauseDescription() {
+        database.child("cause").get().addOnSuccessListener(dataSnapshot -> {
+            if (dataSnapshot.exists()) {
+                String cause = dataSnapshot.getValue(String.class);
+                donationsDescription.setText(cause);
+            } else {
+                donationsDescription.setText("Cause description not available.");
+            }
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to fetch cause description", e);
+            donationsDescription.setText("Failed to load cause.");
+        });
     }
 
     private void fetchClientToken() {
-        FirebaseFunctions.getInstance()
-                .getHttpsCallable("generateClientToken")
-                .call()
-                .addOnSuccessListener(httpsCallableResult -> {
-                    // Extract clientToken from the data map
-                    Map<String, Object> result = (Map<String, Object>) httpsCallableResult.getData();
-                    String clientToken = (String) result.get("clientToken");
-                    setupBraintree(clientToken);
-                })
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to fetch client token", e));
+        FirebaseFunctions.getInstance().getHttpsCallable("generateClientToken").call().addOnSuccessListener(httpsCallableResult -> {
+            Map<String, Object> result = (Map<String, Object>) httpsCallableResult.getData();
+            String clientToken = (String) result.get("clientToken");
+            setupBraintree(clientToken);
+        }).addOnFailureListener(e -> Log.e(TAG, "Failed to fetch client token", e));
     }
 
     private void setupBraintree(String clientToken) {
@@ -140,7 +145,7 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
         String nonce = paymentMethodNonce.getNonce();
         String amount = amountEdt.getText().toString().trim();
         if (!amount.isEmpty()) {
-            postNonceToServer(nonce, amount);
+            postNonceToServer(nonce, Integer.parseInt(amount));
         }
     }
 
@@ -148,15 +153,48 @@ public class DonationFragment extends Fragment implements PaymentMethodNonceCrea
         PayPal.requestOneTimePayment(mBraintreeFragment, new PayPalRequest(amount));
     }
 
-    private void postNonceToServer(String nonce, String amount) {
+    private void postNonceToServer(String nonce, int amount) {
         Map<String, Object> data = new HashMap<>();
         data.put("paymentMethodNonce", nonce);
         data.put("amount", amount);
 
-        FirebaseFunctions.getInstance()
-                .getHttpsCallable("processPayment")
-                .call(data)
-                .addOnSuccessListener(httpsCallableResult -> Log.d(TAG, "Payment processed successfully"))
-                .addOnFailureListener(e -> Log.e(TAG, "Failed to process payment", e));
+        FirebaseFunctions.getInstance().getHttpsCallable("processPayment").call(data)
+                .addOnSuccessListener(httpsCallableResult -> {
+                    Log.d(TAG, "Payment processed successfully");
+                    // Call saveDonation only after successful payment processing
+                    saveDonation(amount);
+                })
+                .addOnFailureListener(e -> {
+                    Log.e(TAG, "Failed to process payment", e);
+                    Toast.makeText(getContext(), "Payment failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+    }
+
+    private void saveDonation(int amount) {
+        // Get current amount, add new amount, and then update it in one step to avoid race conditions
+        database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
+            int currentAmount = dataSnapshot.exists() ? dataSnapshot.getValue(Integer.class) : 0;
+            int updatedAmount = currentAmount + amount;
+            database.child("currentAmount").setValue(updatedAmount)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "Donation updated successfully");
+                            updateProgress(updatedAmount); // Update UI only here after successful database update
+                            amountEdt.setText(""); // Clear the donation amount input field after the donation is successfully processed
+                        } else {
+                            Log.e(TAG, "Failed to update donation amount", task.getException());
+                            Toast.makeText(getContext(), "Failed to update donation total", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Failed to fetch current donation amount", e);
+        });
+    }
+
+
+    private void updateProgress(int currentAmount) {
+        textViewCollected.setText(String.format(Locale.getDefault(), "Collected: $%d", currentAmount));
+        int progress = (int) ((currentAmount / (float) progressBar.getMax()) * 100);
+        progressBar.setProgress(progress);
     }
 }

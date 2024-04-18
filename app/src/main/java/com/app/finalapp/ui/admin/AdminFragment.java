@@ -14,6 +14,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.app.finalapp.R;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -24,6 +25,7 @@ public class AdminFragment extends Fragment {
 
     private EditText causeInput, targetInput;
     private FloatingActionButton saveCauseButton, saveTargetButton;
+    private ExtendedFloatingActionButton resetCollectedAmount;
     private DatabaseReference database;
 
     public static AdminFragment newInstance() {
@@ -39,11 +41,12 @@ public class AdminFragment extends Fragment {
         targetInput = view.findViewById(R.id.target_input);
         saveCauseButton = view.findViewById(R.id.donation_case_button);
         saveTargetButton = view.findViewById(R.id.donation_taget_button);
-
+        resetCollectedAmount = view.findViewById(R.id.reset_collected_amount);
         database = FirebaseDatabase.getInstance().getReference().child("adminSettings");
 
         saveCauseButton.setOnClickListener(v -> saveCause());
         saveTargetButton.setOnClickListener(v -> saveTarget());
+        resetCollectedAmount.setOnClickListener(v -> resetCollectedAmount());
 
         return view;
     }
@@ -80,5 +83,10 @@ public class AdminFragment extends Fragment {
         } else {
             Toast.makeText(getContext(), "Please enter a target.", Toast.LENGTH_SHORT).show();
         }
+    }
+    private void resetCollectedAmount() {
+        database.child("currentAmount").setValue(0)
+                .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Collected amount reset successfully!", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to reset collected amount.", Toast.LENGTH_SHORT).show());
     }
 }
