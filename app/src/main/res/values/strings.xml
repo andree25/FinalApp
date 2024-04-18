@@ -45,4 +45,18 @@
     <string name="donation_cause_name_hint">Cause / Organization name</string>
     <string name="reset_collected">Reset the collected amount from donations</string>
 
+    <!--Pet-->
+    <string name="pet">Pet</string>
+    <string name="pet_title">Find your pet a new owner here:</string>
+    <string name="type_animal">Choose the type: </string>
+    <string-array name="animal_types">
+        <item>Dog</item>
+        <item>Cat</item>
+        <item>Bunny</item>
+        <item>Hamster</item>
+        <item>Guinea Pig</item>
+        <item>Parrot</item>
+        <item>Fishes</item>
+        <item>Other</item>
+    </string-array>
 </resources>

@@ -14,7 +14,13 @@
         android:id="@+id/nav_adopt"
         android:name="com.app.finalapp.ui.adoption.AdoptionFragment"
         android:label="@string/menu_adopt"
-        tools:layout="@layout/fragment_adoption" />
+        tools:layout="@layout/fragment_adoption" >
+        <action
+            android:id="@+id/action_nav_adopt_to_nav_pet"
+            app:destination="@id/nav_pet"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"/>
+    </fragment>
     <fragment
         android:id="@+id/nav_chat"
         android:name="com.app.finalapp.ui.chat.ChatFragment"
@@ -69,4 +75,9 @@
         android:name="com.app.finalapp.ui.admin.AdminFragment"
         android:label="@string/admin"
         tools:layout="@layout/fragment_admin" />
+    <fragment
+        android:id="@+id/nav_pet"
+        android:name="com.app.finalapp.ui.pet.PetFragment"
+        android:label="@string/pet"
+        tools:layout="@layout/fragment_pet" />
 </navigation>
