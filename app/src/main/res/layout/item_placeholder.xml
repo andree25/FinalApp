@@ -1,0 +1,11 @@
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/placeholder_text"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center"
+    android:padding="16dp"
+    android:fontFamily="@font/lato"
+    android:text="@string/image_hint"
+    android:textColor="@color/black"
+    android:textAppearance="@style/TextAppearance.AppCompat.Large"
+    android:visibility="visible" />

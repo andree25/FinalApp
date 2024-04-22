@@ -48,7 +48,7 @@
     <!--Pet-->
     <string name="pet">Pet</string>
     <string name="pet_title">Find your pet a new owner here:</string>
-    <string name="type_animal">Choose the type: </string>
+    <string name="type_animal">Animal category: </string>
     <string-array name="animal_types">
         <item>Dog</item>
         <item>Cat</item>
@@ -59,4 +59,18 @@
         <item>Fishes</item>
         <item>Other</item>
     </string-array>
+    <string name="age_animal">Age: </string>
+    <string name="gender_animal">Gender: </string>
+    <string-array name="gender_type">
+        <item>Male</item>
+        <item>Female</item>
+    </string-array>
+    <string name="description_animal">Add a short description about the animal: </string>
+    <string name="delete">Delete</string>
+    <string name="save_pet">Save Pet</string>
+    <string name="add_images">Add pet photos</string>
+    <string name="image_hint">No images loaded yet</string>
+
+
+
 </resources>
