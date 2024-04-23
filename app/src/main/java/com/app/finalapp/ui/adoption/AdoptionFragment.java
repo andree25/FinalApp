@@ -44,14 +44,14 @@ public class AdoptionFragment extends BaseFragment {
     private NavigationManager navigationManager;
     private DatabaseReference databaseReference;
     private FloatingActionButton addPet;
-    private Button dogsButton, catsButton, bunnyButton, hamstersButton, guineaButton, parrotButton, fishButton, otherButton;
+    private Button allButton, dogsButton, catsButton, bunnyButton, hamstersButton, guineaButton, parrotButton, fishButton, otherButton;
     SearchView searchView;
+    private String currentCategory = "All";  // Default to "All"
 
     public static AdoptionFragment newInstance() {
         return new AdoptionFragment();
     }
 
-    private RecyclerView recyclerView;
     private PetAdapter petAdapter;
     private List<Pet> petList = new ArrayList<>();
 
@@ -65,6 +65,7 @@ public class AdoptionFragment extends BaseFragment {
         navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
         navigationManager = NavigationManager.getInstance();
 
+        allButton = rootView.findViewById(R.id.all_button);
         dogsButton = rootView.findViewById(R.id.dogs_button);
         catsButton = rootView.findViewById(R.id.cats_button);
         bunnyButton = rootView.findViewById(R.id.bunny_button);
@@ -74,15 +75,51 @@ public class AdoptionFragment extends BaseFragment {
         fishButton = rootView.findViewById(R.id.fish_button);
         otherButton = rootView.findViewById(R.id.other_button);
 
-
-        dogsButton.setOnClickListener(v -> filterPetsByType("Dog"));
-        catsButton.setOnClickListener(v -> filterPetsByType("Cat"));
-        bunnyButton.setOnClickListener(v -> filterPetsByType("Bunny"));
-        hamstersButton.setOnClickListener(v -> filterPetsByType("Hamster"));
-        guineaButton.setOnClickListener(v -> filterPetsByType("Guinea Pig"));
-        parrotButton.setOnClickListener(v -> filterPetsByType("Parrot"));
-        fishButton.setOnClickListener(v -> filterPetsByType("Fishes"));
-        otherButton.setOnClickListener(v -> filterPetsByType("Other"));
+        allButton.setOnClickListener(v -> {
+            currentCategory = "All";
+            loadPetsFromDatabase();
+            searchView.setQuery("", false);
+        });
+        dogsButton.setOnClickListener(v -> {
+            currentCategory = "Dog";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        catsButton.setOnClickListener(v -> {
+            currentCategory = "Cat";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        bunnyButton.setOnClickListener(v -> {
+            currentCategory = "Bunny";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        hamstersButton.setOnClickListener(v -> {
+            currentCategory = "Hamster";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        guineaButton.setOnClickListener(v -> {
+            currentCategory = "Guinea Pig";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        parrotButton.setOnClickListener(v -> {
+            currentCategory = "Parrot";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        fishButton.setOnClickListener(v -> {
+            currentCategory = "Fishes";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
+        otherButton.setOnClickListener(v -> {
+            currentCategory = "Other";
+            filterPetsByType(currentCategory);
+            searchView.setQuery("", false);
+        });
 
         searchView = rootView.findViewById(R.id.search_view);
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -159,7 +196,7 @@ public class AdoptionFragment extends BaseFragment {
                 for (DataSnapshot snapshot : dataSnapshot.getChildren()) {
                     for (DataSnapshot petSnapshot : snapshot.getChildren()) {
                         Pet pet = petSnapshot.getValue(Pet.class);
-                        if (pet != null && petMatchesQuery(pet, query)) {
+                        if (pet != null && petMatchesQuery(pet, query) && matchesCategory(pet)) {
                             petList.add(pet);
                         }
                     }
@@ -173,12 +210,17 @@ public class AdoptionFragment extends BaseFragment {
         });
     }
 
+    private boolean matchesCategory(Pet pet) {
+        return currentCategory.equals("All") || pet.getType().equalsIgnoreCase(currentCategory);
+    }
+
+
     private boolean petMatchesQuery(Pet pet, String query) {
         query = query.toLowerCase();
-        return pet.getType().toLowerCase().contains(query) ||
+        return (pet.getType().toLowerCase().contains(query) ||
                 pet.getAge().toLowerCase().contains(query) ||
                 pet.getGender().toLowerCase().contains(query) ||
-                pet.getDescription().toLowerCase().contains(query);
+                pet.getDescription().toLowerCase().contains(query));
     }
 
     private void checkLoginStatus() {

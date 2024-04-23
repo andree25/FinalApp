@@ -72,6 +72,7 @@
     <string name="image_hint">No images loaded yet</string>
 
     <!--Adoption Page-->
+    <string name="all_category">All</string>
     <string name="dog_category">Dogs</string>
     <string name="cat_category">Cats</string>
     <string name="bunny_category">Bunny\'s</string>
