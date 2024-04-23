@@ -1,5 +1,7 @@
 package com.app.finalapp;
 
+import java.util.ArrayList;
+
 import java.util.List;
 
 public class Pet {
@@ -54,11 +56,14 @@ public class Pet {
         this.description = description;
     }
 
-    public List<String> getImageUrls() {
-        return imageUrls;
-    }
-
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
+    }
+
+    public List<String> getImageUrls() {
+        if (imageUrls == null) {
+            imageUrls = new ArrayList<>();
+        }
+        return imageUrls;
     }
 }

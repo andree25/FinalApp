@@ -71,6 +71,14 @@
     <string name="add_images">Add pet photos</string>
     <string name="image_hint">No images loaded yet</string>
 
-
+    <!--Adoption Page-->
+    <string name="dog_category">Dogs</string>
+    <string name="cat_category">Cats</string>
+    <string name="bunny_category">Bunny\'s</string>
+    <string name="hamster_category">Hamsters</string>
+    <string name="guinea_category">Guinea Pigs</string>
+    <string name="parrot_category">Parrots</string>
+    <string name="fish_category">Fishes</string>
+    <string name="others_category">Others</string>
 
 </resources>
