@@ -2,8 +2,6 @@ package com.app.finalapp.ui.pet;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -21,7 +19,6 @@ import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
 
-import com.app.finalapp.ImagesAdapter;
 import com.app.finalapp.Pet;
 import com.app.finalapp.R;
 import com.app.finalapp.ui.BaseFragment;

@@ -82,4 +82,9 @@
     <string name="fish_category">Fishes</string>
     <string name="others_category">Others</string>
 
+    <!--Pet Details-->
+    <string name="pet_details">Pet Details</string>
+    <string name="pet_description">Description: </string>
+    <string name="adopt_me">Adopt me!</string>
+
 </resources>

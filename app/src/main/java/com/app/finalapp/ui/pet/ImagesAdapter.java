@@ -1,4 +1,4 @@
-package com.app.finalapp;
+package com.app.finalapp.ui.pet;
 
 import android.content.Context;
 import android.net.Uri;
@@ -12,6 +12,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
 
 import java.util.List;

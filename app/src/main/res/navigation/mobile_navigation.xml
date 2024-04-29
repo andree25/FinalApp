@@ -20,6 +20,11 @@
             app:destination="@id/nav_pet"
             app:enterAnim="@anim/fade_in"
             app:exitAnim="@anim/fade_out"/>
+        <action
+            android:id="@+id/action_nav_adopt_to_petDetailFragment"
+            app:destination="@id/petDetailFragment"
+            app:enterAnim="@anim/fade_in"
+            app:exitAnim="@anim/fade_out"/>
     </fragment>
     <fragment
         android:id="@+id/nav_chat"
@@ -80,4 +85,9 @@
         android:name="com.app.finalapp.ui.pet.PetFragment"
         android:label="@string/pet"
         tools:layout="@layout/fragment_pet" />
+    <fragment
+        android:id="@+id/petDetailFragment"
+        android:name="com.app.finalapp.ui.petDetail.PetDetailFragment"
+        android:label="@string/pet_details"
+        tools:layout="@layout/fragment_pet_detail" />
 </navigation>

@@ -1,6 +1,8 @@
-package com.app.finalapp;
+package com.app.finalapp.ui.adoption;
 
 import android.content.Context;
+import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,8 +10,12 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.app.finalapp.Pet;
+import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
 
 import java.util.List;
@@ -45,13 +51,24 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.PetViewHolder> {
         holder.petType.setText(pet.getType());
         holder.petAge.setText(pet.getAge());
         holder.petGender.setText(pet.getGender());
-        holder.petDescription.setText(pet.getDescription());
 
         holder.itemView.setOnClickListener(view -> {
             if (listener != null) {
                 listener.onPetClick(pet);
+                Bundle bundle = new Bundle();
+                bundle.putSerializable("pet", pet);
+
+                NavController navController = Navigation.findNavController(view);
+
+                // Check if the current destination is correct before navigating
+                if (navController.getCurrentDestination().getId() == R.id.nav_adopt) {
+                    navController.navigate(R.id.action_nav_adopt_to_petDetailFragment, bundle);
+                } else {
+                    Log.e("PetAdapter", "Incorrect current destination: Expected nav_adopt");
+                }
             }
         });
+
     }
 
     @Override
@@ -61,7 +78,7 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.PetViewHolder> {
 
     static class PetViewHolder extends RecyclerView.ViewHolder {
         ImageView petImage;
-        TextView petType, petAge, petGender, petDescription;
+        TextView petType, petAge, petGender;
 
         PetViewHolder(View itemView) {
             super(itemView);
@@ -69,7 +86,6 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.PetViewHolder> {
             petType = itemView.findViewById(R.id.pet_type);
             petAge = itemView.findViewById(R.id.pet_age);
             petGender = itemView.findViewById(R.id.pet_gender);
-            petDescription = itemView.findViewById(R.id.pet_description);
         }
     }
 

@@ -1,15 +1,26 @@
 package com.app.finalapp;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import java.util.List;
 
-public class Pet {
+public class Pet implements Serializable {
     private String type;
     private String age;
     private String gender;
     private String description;
     private List<String> imageUrls;
+    private String userEmail; // Email will be fetched later
+    private String userId; // Add this to store the UID
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
     public Pet() {
         // Default constructor required for calls to DataSnapshot.getValue(Pet.class)

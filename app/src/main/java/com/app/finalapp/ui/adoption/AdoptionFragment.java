@@ -1,12 +1,9 @@
 package com.app.finalapp.ui.adoption;
 
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,7 +20,6 @@ import android.widget.Toast;
 import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.NavigationManager;
 import com.app.finalapp.Pet;
-import com.app.finalapp.PetAdapter;
 import com.app.finalapp.R;
 import com.app.finalapp.ui.BaseFragment;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -154,9 +150,15 @@ public class AdoptionFragment extends BaseFragment {
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         petAdapter = new PetAdapter(getContext(), petList, pet -> {
             Toast.makeText(getContext(), "Clicked on " + pet.getType(), Toast.LENGTH_SHORT).show();
+            // When a pet is clicked, navigate with the pet object
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("pet", pet);
+            NavController navController = Navigation.findNavController(getActivity(), R.id.nav_host_fragment_content_main);
+            navController.navigate(R.id.action_nav_adopt_to_petDetailFragment, bundle);
         });
         recyclerView.setAdapter(petAdapter);
     }
+
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
@@ -219,8 +221,7 @@ public class AdoptionFragment extends BaseFragment {
         query = query.toLowerCase();
         return (pet.getType().toLowerCase().contains(query) ||
                 pet.getAge().toLowerCase().contains(query) ||
-                pet.getGender().toLowerCase().contains(query) ||
-                pet.getDescription().toLowerCase().contains(query));
+                pet.getGender().toLowerCase().contains(query));
     }
 
     private void checkLoginStatus() {
