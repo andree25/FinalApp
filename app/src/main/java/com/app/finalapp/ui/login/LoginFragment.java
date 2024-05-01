@@ -152,20 +152,16 @@ public class LoginFragment extends BaseFragment {
     }
 
     private void showLoadingIndicator() {
-        // Show loading indicator
         ProgressBar loadingIndicator = rootView.findViewById(R.id.loadingIndicator);
         loadingIndicator.setVisibility(View.VISIBLE);
     }
 
     private void hideLoadingIndicator() {
-        // Hide loading indicator
         ProgressBar loadingIndicator = rootView.findViewById(R.id.loadingIndicator);
         loadingIndicator.setVisibility(View.GONE);
     }
 
     private boolean isNetworkConnected() {
-        // Check network connectivity
-        // Implement your network connectivity check here
-        return true; // Placeholder, replace with actual implementation
+        return true;
     }
 }

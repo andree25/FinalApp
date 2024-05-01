@@ -89,17 +89,17 @@
                         android:fontFamily="@font/lato"
                         android:text="@string/target"
                         android:textColor="@color/grey1"
-                        android:textSize="15dp"/>
+                        android:textSize="15dp" />
 
                     <ProgressBar
                         android:id="@+id/progressDonation"
                         style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="35dp"
                         android:max="100"
                         android:progress="0"
-                        android:progressDrawable="@drawable/custom_progress"
-                        android:layout_marginTop="35dp" />
+                        android:progressDrawable="@drawable/custom_progress" />
 
                     <TextView
                         android:id="@+id/donationTargetSum"
@@ -150,6 +150,7 @@
                         android:text="Donate" />
                 </RelativeLayout>
             </androidx.cardview.widget.CardView>
+
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardView_image2"
                 android:layout_width="match_parent"
@@ -176,4 +177,16 @@
         </LinearLayout>
     </ScrollView>
 
+    <ProgressBar
+        android:id="@+id/progressBar3"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:indeterminate="true"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

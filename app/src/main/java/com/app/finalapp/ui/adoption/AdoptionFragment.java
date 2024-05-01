@@ -149,8 +149,6 @@ public class AdoptionFragment extends BaseFragment {
         RecyclerView recyclerView = rootView.findViewById(R.id.recycler_view);
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         petAdapter = new PetAdapter(getContext(), petList, pet -> {
-            Toast.makeText(getContext(), "Clicked on " + pet.getType(), Toast.LENGTH_SHORT).show();
-            // When a pet is clicked, navigate with the pet object
             Bundle bundle = new Bundle();
             bundle.putSerializable("pet", pet);
             NavController navController = Navigation.findNavController(getActivity(), R.id.nav_host_fragment_content_main);
@@ -226,9 +224,7 @@ public class AdoptionFragment extends BaseFragment {
 
     private void checkLoginStatus() {
         FirebaseUser user = authManager.getCurrentUser();
-        if (user != null) {
-            enableAdoptionFeatures();
-        } else {
+        if (user == null) {
             navController.navigate(R.id.nav_login);
         }
     }
@@ -240,7 +236,6 @@ public class AdoptionFragment extends BaseFragment {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 petList.clear();
                 for (DataSnapshot userPetsSnapshot : dataSnapshot.getChildren()) {
-                    // Iterate over each user's pets
                     for (DataSnapshot petSnapshot : userPetsSnapshot.getChildren()) {
                         Pet pet = petSnapshot.getValue(Pet.class);
                         if (pet != null) {

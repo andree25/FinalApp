@@ -155,17 +155,19 @@ public class PetFragment extends BaseFragment {
 
 
     private void savePetData(List<String> imageUrls) {
-        String type = petTypeSpinner.getSelectedItem().toString();
-        String age = ((EditText) getView().findViewById(R.id.age_edittext)).getText().toString();
-        String gender = genderTypeSpinner.getSelectedItem().toString();
-        String description = ((EditText) getView().findViewById(R.id.editTextTextMultiLine)).getText().toString();
-
-        Pet newPet = new Pet(type, age, gender, description, imageUrls);
-
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
+            String type = petTypeSpinner.getSelectedItem().toString();
+            String age = ((EditText) getView().findViewById(R.id.age_edittext)).getText().toString();
+            String gender = genderTypeSpinner.getSelectedItem().toString();
+            String description = ((EditText) getView().findViewById(R.id.editTextTextMultiLine)).getText().toString();
+
+            Pet newPet = new Pet(type, age, gender, description, imageUrls);
+            newPet.setUserId(user.getUid());  // Set the user ID
+
             DatabaseReference userPetsRef = FirebaseDatabase.getInstance().getReference("pets").child(user.getUid());
-            String petKey = userPetsRef.push().getKey();
+            String petKey = userPetsRef.push().getKey(); // Generate a unique key for the pet
+            newPet.setUid(petKey);
             userPetsRef.child(petKey).setValue(newPet)
                     .addOnSuccessListener(aVoid -> {
                         Toast.makeText(getContext(), "Pet saved successfully!", Toast.LENGTH_SHORT).show();
@@ -181,6 +183,7 @@ public class PetFragment extends BaseFragment {
             hideLoadingIndicator();  // Hide loading indicator if user is not logged in
         }
     }
+
 
 
     @Override

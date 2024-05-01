@@ -120,6 +120,10 @@
                         android:clickable="true"
                         android:text="@string/reset_collected"
                         android:textSize="10sp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_marginBottom="8dp"
                         app:fabSize="mini" />
 
                 </RelativeLayout>

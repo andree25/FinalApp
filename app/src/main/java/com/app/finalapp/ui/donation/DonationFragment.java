@@ -38,7 +38,7 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
     private static final String TAG = "DonationFragment";
     private BraintreeFragment mBraintreeFragment;
     private EditText amountEdt;
-    private ProgressBar progressBar;
+    private ProgressBar progressBar, loadingProgressBar;
     private TextView textViewCollected, textViewTarget, donationsDescription;
     private DatabaseReference database;
     private NavController navController;
@@ -63,11 +63,13 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         textViewTarget = view.findViewById(R.id.initialtarget);
         donationsDescription = view.findViewById(R.id.donationsDescription);
         database = FirebaseDatabase.getInstance().getReference().child("adminSettings");
+        loadingProgressBar = view.findViewById(R.id.progressBar3);
 
         donateButton.setOnClickListener(v -> {
             String amountString = amountEdt.getText().toString().trim();
             if (!amountString.isEmpty()) {
                 int amount = Integer.parseInt(amountString);
+                showLoadingIndicator();
                 initiatePayment(amountString);
             }
         });
@@ -183,6 +185,7 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
                             Log.d(TAG, "Donation updated successfully");
                             updateProgress(updatedAmount); // Update UI only here after successful database update
                             amountEdt.setText(""); // Clear the donation amount input field after the donation is successfully processed
+                            hideLoadingIndicator();
                         } else {
                             Log.e(TAG, "Failed to update donation amount", task.getException());
                             Toast.makeText(getContext(), "Failed to update donation total", Toast.LENGTH_SHORT).show();
@@ -198,5 +201,13 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         textViewCollected.setText(String.format(Locale.getDefault(), "Collected: $%d", currentAmount));
         int progress = (int) ((currentAmount / (float) progressBar.getMax()) * 100);
         progressBar.setProgress(progress);
+    }
+
+    private void showLoadingIndicator() {
+        loadingProgressBar.setVisibility(View.VISIBLE);
+    }
+
+    private void hideLoadingIndicator() {
+        loadingProgressBar.setVisibility(View.GONE);
     }
 }

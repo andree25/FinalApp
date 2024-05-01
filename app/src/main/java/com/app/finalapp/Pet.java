@@ -14,6 +14,17 @@ public class Pet implements Serializable {
     private String userEmail; // Email will be fetched later
     private String userId; // Add this to store the UID
 
+    private String uid;  // This should store the Firebase generated unique key
+    // Other fields...
+
+    public String getUid() {
+        return uid;
+    }
+
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
     public String getUserId() {
         return userId;
     }

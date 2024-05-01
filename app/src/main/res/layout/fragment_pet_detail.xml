@@ -163,8 +163,41 @@
                 <androidx.cardview.widget.CardView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:layout_margin="10dp"
+                    android:layout_centerVertical="true"
+                    app:cardBackgroundColor="@color/colorAccent"
+                    app:cardCornerRadius="20dp"
+                    app:cardElevation="20dp">
+
+                    <RelativeLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        >
+
+
+                        <TextView
+                            android:id="@+id/textButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_marginTop="8dp"
+                            android:layout_marginEnd="8dp"
+                            android:layout_marginBottom="8dp"
+                            android:textColor="@color/white"
+                            android:textSize="11sp"
+                            android:fontFamily="@font/lato"
+                            android:clickable="true"
+                            android:text="@string/test_button" />
+                    </RelativeLayout>
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="10dp"
+                    android:layout_centerVertical="true"
                     app:cardBackgroundColor="@color/colorAccent"
                     app:cardCornerRadius="20dp"
                     app:cardElevation="20dp">

@@ -1,5 +1,7 @@
 package com.app.finalapp.ui.petDetail;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -22,6 +24,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.app.finalapp.Pet;
 import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -104,7 +108,7 @@ public class PetDetailFragment extends Fragment {
         TextView petGender = view.findViewById(R.id.pet_gender);
         TextView petDescription = view.findViewById(R.id.pet_description);
         Button emailButton = view.findViewById(R.id.send_email_button);
-
+        TextView textButton = view.findViewById(R.id.textButton);
         petType.setText(pet.getType());
         petAge.setText(pet.getAge());
         petGender.setText(pet.getGender());
@@ -120,13 +124,55 @@ public class PetDetailFragment extends Fragment {
             }
         });
 
+        textButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
+                if (currentUser != null && currentUser.getUid().equals(pet.getUserId())) {
+                    confirmAndDeletePet();
+                } else {
+                    Toast.makeText(getContext(), "You do not have permission to delete this pet.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
+
+    private void confirmAndDeletePet() {
+        new AlertDialog.Builder(getContext())
+                .setTitle("Delete Pet")
+                .setMessage("Are you sure you want to delete this pet?")
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        deletePet();
+                    }
+                })
+                .setNegativeButton(android.R.string.no, null)
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show();
+    }
+
+    private void deletePet() {
+        if (pet.getUid() == null || pet.getUid().isEmpty()) {
+            Toast.makeText(getContext(), "Error: Pet key is missing.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        DatabaseReference petRef = FirebaseDatabase.getInstance().getReference("pets").child(pet.getUserId()).child(pet.getUid());
+        petRef.removeValue()
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "Pet deleted successfully", Toast.LENGTH_SHORT).show();
+                    if (getFragmentManager() != null) {
+                        getFragmentManager().popBackStack(); // Go back to the previous fragment
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to delete pet: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+
 
     private void fetchUserEmailAndSendEmail() {
         if (pet.getUserId() == null || pet.getUserId().isEmpty()) {
             Log.e(TAG, "User ID is null or empty");
             Toast.makeText(getContext(), "User ID is missing.", Toast.LENGTH_SHORT).show();
-            return;  // Exit if the userId is null or empty
+            return;
         }
 
         DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
@@ -154,7 +200,7 @@ public class PetDetailFragment extends Fragment {
     private void sendEmail(String emailAddress) {
         String[] addresses = {emailAddress}; // Email address fetched from the database
         String subject = "Inquiry about " + pet.getType();
-        String body = "I am interested in your " + pet.getType() + " named " + pet.getDescription() + ".";
+        String body = "Hello! \n I am interested in your " + pet.getType() + ", aged " + pet.getAge() + ", gender: " + pet.getGender() + ". \nCould you please let me know if the Animal is still available for adoption?";
 
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("message/rfc822");
