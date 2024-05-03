@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.navigation.fragment)
     implementation(libs.navigation.ui)
     implementation(libs.legacy.support.v4)
+    implementation(libs.places)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
@@ -60,7 +61,6 @@ dependencies {
     implementation (libs.braintree)
     implementation (libs.okhttp)
     implementation (libs.cardview)
-
-
-
+    implementation (libs.play.services.maps)
+    implementation (libs.places)
 }
