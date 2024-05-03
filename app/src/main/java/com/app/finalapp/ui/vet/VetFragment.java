@@ -14,6 +14,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -36,6 +37,7 @@ import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
 import com.google.android.libraries.places.api.net.PlacesClient;
+import com.google.android.gms.maps.model.Polyline;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,7 +50,7 @@ import java.util.List;
 public class VetFragment extends Fragment implements OnMapReadyCallback {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 101;
     private FusedLocationProviderClient fusedLocationClient;
-
+    private Polyline currentPolyline;
     private GoogleMap mMap;
     private PlacesClient placesClient;
 
@@ -135,7 +137,7 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
                     fetchDirections(currentLocation, destination);
                 }
             });
-            return true; // This should be false if you want the default behavior (like showing the info window)
+            return false; // This should be false if you want the default behavior (like showing the info window)
         });
 
     }
@@ -192,8 +194,12 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
                     try {
                         JSONObject jsonResponse = response.getJSONArray("routes").getJSONObject(0);
                         JSONObject poly = jsonResponse.getJSONObject("overview_polyline");
+                        JSONObject leg = jsonResponse.getJSONArray("legs").getJSONObject(0);
+                        JSONObject durationObject = leg.getJSONObject("duration");
+                        String durationText = durationObject.getString("text");  // Get the human-readable duration text
                         String polyline = poly.getString("points");
                         drawPolyline(polyline);
+                        showDuration(durationText);  // Display the duration on the UI
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
@@ -205,14 +211,25 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
         requestQueue.add(directionsRequest);
     }
 
+    private void showDuration(String duration) {
+        // You can use a Toast or update a TextView element to show the duration:
+        Toast.makeText(getContext(), "Estimated travel time: " + duration + " driving", Toast.LENGTH_LONG).show();
+    }
+
     private void drawPolyline(String encodedPolyline) {
+        // Remove the existing polyline if there is one
+        if (currentPolyline != null) {
+            currentPolyline.remove();
+        }
+
         List<LatLng> list = decodePoly(encodedPolyline);
-        mMap.addPolyline(new PolylineOptions()
+        currentPolyline = mMap.addPolyline(new PolylineOptions()
                 .addAll(list)
                 .width(10)
                 .color(Color.BLUE)
                 .geodesic(true));
     }
+
 
     // Method to decode polyline
     private List<LatLng> decodePoly(String encoded) {
@@ -247,5 +264,14 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
 
         return poly;
     }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (currentPolyline != null) {
+            currentPolyline.remove();
+        }
+    }
+
 
 }
