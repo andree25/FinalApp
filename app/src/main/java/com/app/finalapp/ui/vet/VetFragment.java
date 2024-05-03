@@ -3,11 +3,14 @@ package com.app.finalapp.ui.vet;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.pm.PackageManager;
+import android.content.res.Resources;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,8 +28,10 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MapStyleOptions;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.FetchPlaceRequest;
@@ -36,6 +41,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -97,7 +103,18 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
                 && ActivityCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
+        try {
+            // Load and set the custom map style
+            boolean success = mMap.setMapStyle(
+                    MapStyleOptions.loadRawResourceStyle(
+                            getContext(), R.raw.custom_map));  // Assuming you've saved the JSON style in res/raw/style_json.json
 
+            if (!success) {
+                Log.e("MapsActivity", "Style parsing failed.");
+            }
+        } catch (Resources.NotFoundException e) {
+            Log.e("MapsActivity", "Can't find style. Error: ", e);
+        }
         mMap.setMyLocationEnabled(true);  // Enables the "My Location" layer
         mMap.getUiSettings().setMyLocationButtonEnabled(true);
 
@@ -110,6 +127,17 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
                 addLocationMarker(currentLocation);
             }
         });
+        mMap.setOnMarkerClickListener(marker -> {
+            LatLng destination = marker.getPosition();
+            fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+                if (location != null) {
+                    LatLng currentLocation = new LatLng(location.getLatitude(), location.getLongitude());
+                    fetchDirections(currentLocation, destination);
+                }
+            });
+            return true; // This should be false if you want the default behavior (like showing the info window)
+        });
+
     }
 
     private void addLocationMarker(LatLng location) {
@@ -151,4 +179,73 @@ public class VetFragment extends Fragment implements OnMapReadyCallback {
         RequestQueue requestQueue = Volley.newRequestQueue(requireContext());
         requestQueue.add(jsonObjectRequest);
     }
+
+    private void fetchDirections(LatLng startLocation, LatLng endLocation) {
+        String url = "https://maps.googleapis.com/maps/api/directions/json?" +
+                "origin=" + startLocation.latitude + "," + startLocation.longitude +
+                "&destination=" + endLocation.latitude + "," + endLocation.longitude +
+                "&mode=driving" +  // You can change this to walking, bicycling, etc.
+                "&key=AIzaSyC2kJo3orR-fjfK2hVuDm14pJibpLvOMV4";
+
+        JsonObjectRequest directionsRequest = new JsonObjectRequest(Request.Method.GET, url, null,
+                response -> {
+                    try {
+                        JSONObject jsonResponse = response.getJSONArray("routes").getJSONObject(0);
+                        JSONObject poly = jsonResponse.getJSONObject("overview_polyline");
+                        String polyline = poly.getString("points");
+                        drawPolyline(polyline);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                }, error -> {
+            error.printStackTrace();
+        });
+
+        RequestQueue requestQueue = Volley.newRequestQueue(requireContext());
+        requestQueue.add(directionsRequest);
+    }
+
+    private void drawPolyline(String encodedPolyline) {
+        List<LatLng> list = decodePoly(encodedPolyline);
+        mMap.addPolyline(new PolylineOptions()
+                .addAll(list)
+                .width(10)
+                .color(Color.BLUE)
+                .geodesic(true));
+    }
+
+    // Method to decode polyline
+    private List<LatLng> decodePoly(String encoded) {
+        List<LatLng> poly = new ArrayList<>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            LatLng p = new LatLng((((double) lat / 1E5)),
+                    (((double) lng / 1E5)));
+            poly.add(p);
+        }
+
+        return poly;
+    }
+
 }
