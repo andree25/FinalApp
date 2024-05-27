@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.Packaging
+
 plugins {
     alias(libs.plugins.androidApplication)
     id("com.google.gms.google-services")
@@ -32,10 +34,24 @@ android {
     buildFeatures {
         viewBinding = true
     }
+    packagingOptions {
+        resources {
+            excludes += setOf(
+                    "META-INF/DEPENDENCIES",
+                    "META-INF/LICENSE",
+                    "META-INF/LICENSE.txt",
+                    "META-INF/license.txt",
+                    "META-INF/NOTICE",
+                    "META-INF/NOTICE.txt",
+                    "META-INF/notice.txt",
+                    "META-INF/ASL2.0"
+            )
+        }
+    }
 }
 
 dependencies {
-
+    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.constraintlayout)
@@ -63,4 +79,13 @@ dependencies {
     implementation (libs.cardview)
     implementation (libs.play.services.maps)
     implementation (libs.places)
+    implementation (libs.converter.gson)
+    implementation (libs.okhttp.v491)
+    implementation(libs.retrofit)
+    implementation(libs.google.api.client)
+    implementation(libs.google.oauth.client.jetty)
+    implementation(libs.google.http.client.gson)
+    implementation(libs.google.api.services.blogger.vv3rev202206251321)
+    implementation(libs.recyclerview)
+    implementation(libs.picasso)
 }

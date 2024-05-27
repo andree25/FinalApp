@@ -3,4 +3,7 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">192.168.100.164</domain> <!-- Use your development machine's IP address here -->
     </domain-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">newsapi.org</domain>
+    </domain-config>
 </network-security-config>
