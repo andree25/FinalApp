@@ -68,12 +68,9 @@
         android:name="com.app.finalapp.ui.register.RegisterFragment"
         android:label="@string/register"
         tools:layout="@layout/fragment_register" >
-        <action
-            android:id="@+id/action_nav_register_to_nav_login"
-            app:destination="@id/nav_login"
-            app:enterAnim="@anim/fade_in"
-            app:exitAnim="@anim/fade_out"
-            app:popUpTo="@+id/nav_main"/>
+        <argument
+            android:name="targetFragmentId"
+            app:argType="reference" />
     </fragment>
     <fragment
         android:id="@+id/nav_admin"

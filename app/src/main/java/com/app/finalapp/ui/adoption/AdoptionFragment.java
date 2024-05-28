@@ -225,7 +225,9 @@ public class AdoptionFragment extends BaseFragment {
     private void checkLoginStatus() {
         FirebaseUser user = authManager.getCurrentUser();
         if (user == null) {
-            navController.navigate(R.id.nav_login);
+            Bundle args = new Bundle();
+            args.putInt("targetFragmentId", R.id.nav_adopt); // Pass the target fragment ID
+            navController.navigate(R.id.nav_login, args);
         }
     }
 

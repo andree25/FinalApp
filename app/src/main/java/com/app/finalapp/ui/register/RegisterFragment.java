@@ -55,6 +55,7 @@ import java.util.Map;
 
 public class RegisterFragment extends BaseFragment {
     private AuthenticationManager authManager;
+    private int targetFragmentId;
 
     private RegisterViewModel viewModel;
     private static final String USERS_NODE = "users";
@@ -83,7 +84,9 @@ public class RegisterFragment extends BaseFragment {
         navigationManager = NavigationManager.getInstance();
 
         mAuth = FirebaseAuth.getInstance();
-
+        if (getArguments() != null) {
+            targetFragmentId = getArguments().getInt("targetFragmentId");
+        }
         mDatabase = FirebaseDatabase.getInstance().getReference().child(USERS_NODE);
 
         togglePasswordRegister.setOnClickListener(view -> {
@@ -182,18 +185,20 @@ public class RegisterFragment extends BaseFragment {
 
         // Get the Uri of the selected image
         Uri imageUri = getImageUriFromImageView(imageView);
-
-        // Call registerUser method from AuthenticationManager
         authManager.registerUser(email, password, name, forname, imageUri, requireContext(), new AuthenticationManager.AuthCallback() {
             @Override
             public void onSuccess() {
-                // Hide the progress bar
                 hideProgressBar();
                 FirebaseUser user = authManager.getCurrentUser();
                 if (user != null) {
                     Log.d("RegisterFragment", "uuid " + user.getUid());
                     fetchUserData(user.getUid());
-                    navigateBack();
+                    updateUIAfterAuth(user.getUid());
+                    if (targetFragmentId != 0) {
+                        navController.navigate(targetFragmentId);
+                    } else {
+                        navController.navigate(R.id.nav_home); // Navigate to a default fragment if targetFragmentId is not set
+                    }
                 }
             }
 
@@ -219,7 +224,9 @@ public class RegisterFragment extends BaseFragment {
         }
         return null;
     }
-
+    private void updateUIAfterAuth(String userId) {
+        fetchUserData(userId);
+    }
     // Helper method to save a Bitmap to a temporary file
     private File saveBitmapToFile(Bitmap bitmap) {
         try {

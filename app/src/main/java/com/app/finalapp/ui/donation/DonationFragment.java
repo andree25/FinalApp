@@ -1,3 +1,4 @@
+// DonationFragment.java
 package com.app.finalapp.ui.donation;
 
 import androidx.fragment.app.Fragment;
@@ -42,20 +43,15 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
     private TextView textViewCollected, textViewTarget, donationsDescription;
     private DatabaseReference database;
     private NavController navController;
+    private int targetFragmentId;
 
     private AuthenticationManager authManager;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         authManager = new AuthenticationManager();  // Initialize your AuthenticationManager
-        if (authManager.getCurrentUser() == null) {
-            // If no user is logged in, navigate to the login page
-            navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
-            navController.navigate(R.id.nav_login);
-            return null; // Return null to prevent further execution of onCreateView
-        }
-
         View view = inflater.inflate(R.layout.fragment_donation, container, false);
+
         amountEdt = view.findViewById(R.id.amountEdt);
         Button donateButton = view.findViewById(R.id.donateButton);
         progressBar = view.findViewById(R.id.progressDonation);
@@ -64,6 +60,18 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         donationsDescription = view.findViewById(R.id.donationsDescription);
         database = FirebaseDatabase.getInstance().getReference().child("adminSettings");
         loadingProgressBar = view.findViewById(R.id.progressBar3);
+        navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
+
+        if (getArguments() != null) {
+            targetFragmentId = getArguments().getInt("targetFragmentId");
+        }
+
+        if (authManager.getCurrentUser() == null) {
+            navigateToLogin();
+            return null; // Return null to prevent further execution of onCreateView
+        } else {
+            fetchUserData(authManager.getCurrentUser().getUid());
+        }
 
         donateButton.setOnClickListener(v -> {
             String amountString = amountEdt.getText().toString().trim();
@@ -80,6 +88,11 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         return view;
     }
 
+    private void navigateToLogin() {
+        Bundle args = new Bundle();
+        args.putInt("targetFragmentId", R.id.nav_donate);
+        navController.navigate(R.id.nav_login, args);
+    }
 
     private void fetchTargetAndCurrentAmount() {
         database.child("target").get().addOnSuccessListener(dataSnapshot -> {
@@ -92,7 +105,6 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
                 Log.e(TAG, "Target amount not found.");
             }
         });
-
 
         database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
             if (dataSnapshot.exists()) {
@@ -195,7 +207,6 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
             Log.e(TAG, "Failed to fetch current donation amount", e);
         });
     }
-
 
     private void updateProgress(int currentAmount) {
         textViewCollected.setText(String.format(Locale.getDefault(), "Collected: $%d", currentAmount));

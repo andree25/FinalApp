@@ -1,10 +1,12 @@
 package com.app.finalapp.ui;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -35,10 +37,19 @@ public abstract class BaseFragment extends Fragment {
     }
 
     @Override
-    public void onViewCreated(View view, android.os.Bundle savedInstanceState) {
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         navController = Navigation.findNavController(view);
+
+        authManager.getCurrentUserLiveData().observe(getViewLifecycleOwner(), firebaseUser -> {
+            if (firebaseUser != null) {
+                fetchUserData(firebaseUser.getUid());
+            } else {
+                updateUI(null, null, null); // Clear UI if no user is logged in
+            }
+        });
     }
+
 
     protected void navigateBack() {
         Integer destinationId = navigationManager.popFragmentId();
@@ -81,6 +92,7 @@ public abstract class BaseFragment extends Fragment {
         });
     }
 
+
     protected void updateUI(String name, String email, String imageUrl) {
         if (!isAdded()) {
             Log.e("BaseFragment", "Fragment not attached when trying to update UI.");
@@ -94,9 +106,29 @@ public abstract class BaseFragment extends Fragment {
             TextView navEmail = headerView.findViewById(R.id.textView_email_navigation_header);
             ImageView navImageView = headerView.findViewById(R.id.imageView_navigation_header);
 
-            if (navUsername != null) navUsername.setText(name);
-            if (navEmail != null) navEmail.setText(email);
-            if (navImageView != null) Glide.with(this).load(imageUrl).into(navImageView);
+            if (navUsername != null) {
+                navUsername.setText(name);
+                navUsername.invalidate();
+                navUsername.requestLayout();
+            }
+            if (navEmail != null) {
+                navEmail.setText(email);
+                navEmail.invalidate();
+                navEmail.requestLayout();
+            }
+            if (navImageView != null) {
+                Glide.with(this).load(imageUrl).into(navImageView);
+                navImageView.invalidate();
+                navImageView.requestLayout();
+            }
         }
     }
+
+    protected void restartActivity() {
+        if (getActivity() != null) {
+            getActivity().finish();
+            getActivity().startActivity(getActivity().getIntent());
+        }
+    }
+
 }

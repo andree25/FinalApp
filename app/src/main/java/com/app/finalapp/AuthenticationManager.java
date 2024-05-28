@@ -23,17 +23,22 @@ public class AuthenticationManager {
     private final FirebaseAuth mAuth;
     private final DatabaseReference mDatabase;
     private MutableLiveData<Boolean> isUserLoggedIn = new MutableLiveData<>();
+    private MutableLiveData<FirebaseUser> currentUserLiveData = new MutableLiveData<>();
 
     public AuthenticationManager() {
         mAuth = FirebaseAuth.getInstance();
         mDatabase = FirebaseDatabase.getInstance().getReference().child("users");
         // Initialize isUserLoggedIn based on current user status
         isUserLoggedIn.setValue(getCurrentUser() != null);
+        currentUserLiveData.setValue(getCurrentUser());
+
     }
     public LiveData<Boolean> isUserLoggedIn() {
         return isUserLoggedIn;
     }
-
+    public LiveData<FirebaseUser> getCurrentUserLiveData() {
+        return currentUserLiveData;
+    }
     public void checkUserLoggedIn() {
         isUserLoggedIn.setValue(getCurrentUser() != null);
     }

@@ -10,7 +10,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,6 +45,7 @@ public class LoginFragment extends BaseFragment {
     private AppCompatImageView togglePassword;
     private View rootView;
     private NavigationManager navigationManager;
+    private int targetFragmentId;
 
     public static LoginFragment newInstance() {
         return new LoginFragment();
@@ -55,7 +55,6 @@ public class LoginFragment extends BaseFragment {
     public void onAttach(@NonNull Context context) {
         super.onAttach(context);
         Log.d(TAG, "Fragment attached to activity");
-
     }
 
     @Override
@@ -69,7 +68,9 @@ public class LoginFragment extends BaseFragment {
         togglePassword = rootView.findViewById(R.id.togglePassword);
         emailLogin = rootView.findViewById(R.id.email_login);
         passwordLogin = rootView.findViewById(R.id.password_login);
-
+        if (getArguments() != null) {
+            targetFragmentId = getArguments().getInt("targetFragmentId");
+        }
         togglePassword.setOnClickListener(view -> {
             int inputType = passwordLogin.getInputType();
             int cursorPosition = passwordLogin.getSelectionStart();
@@ -99,8 +100,12 @@ public class LoginFragment extends BaseFragment {
         Button registerButton = rootView.findViewById(R.id.button_register);
         if (registerButton != null) {
             registerButton.setOnClickListener(v -> {
-                Log.d(TAG, "Register button clicked");
-                Navigation.findNavController(v).navigate(R.id.action_nav_login_to_nav_register);
+                Bundle args = new Bundle();
+                if (getArguments() != null) {
+                    int targetFragmentId = getArguments().getInt("targetFragmentId", 0);
+                    args.putInt("targetFragmentId", targetFragmentId);
+                }
+                Navigation.findNavController(v).navigate(R.id.action_nav_login_to_nav_register, args);
             });
         }
         navigationManager = NavigationManager.getInstance();
@@ -128,13 +133,17 @@ public class LoginFragment extends BaseFragment {
         authManager.loginUser(email, password, requireContext(), new AuthenticationManager.AuthCallback() {
             @Override
             public void onSuccess() {
-
                 hideLoadingIndicator();
                 FirebaseUser user = authManager.getCurrentUser();
                 if (user != null) {
-                    Log.d(TAG, "uuid " + user.getUid());
+                    Log.d("LoginFragment", "uuid " + user.getUid());
                     fetchUserData(user.getUid());
-                    navigateBack();
+                    updateUIAfterAuth(user.getUid());
+                    if (targetFragmentId != 0) {
+                        navController.navigate(targetFragmentId);
+                    } else {
+                        navController.navigate(R.id.nav_home); // Navigate to a default fragment if targetFragmentId is not set
+                    }
                 }
             }
 
@@ -150,7 +159,9 @@ public class LoginFragment extends BaseFragment {
         NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment_content_main);
         navController.navigate(R.id.nav_admin);
     }
-
+    private void updateUIAfterAuth(String userId) {
+        fetchUserData(userId);
+    }
     private void showLoadingIndicator() {
         ProgressBar loadingIndicator = rootView.findViewById(R.id.loadingIndicator);
         loadingIndicator.setVisibility(View.VISIBLE);
