@@ -1,10 +1,5 @@
 package com.app.finalapp.ui.pet;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
@@ -18,6 +13,12 @@ import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.app.finalapp.Pet;
 import com.app.finalapp.R;
@@ -34,15 +35,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class PetFragment extends BaseFragment {
-    private View view;
 
+    private static final int IMAGE_PICK_CODE = 1000;
     private PetViewModel mViewModel;
     private Spinner petTypeSpinner, genderTypeSpinner;
     private RecyclerView imagesRecyclerView;
     private ImagesAdapter imagesAdapter;
     private List<Uri> imagesUriList = new ArrayList<>();
     private List<String> uploadedUrls = new ArrayList<>();
-    private static final int IMAGE_PICK_CODE = 1000;
+    private View rootView;
 
     public static PetFragment newInstance() {
         return new PetFragment();
@@ -50,11 +51,21 @@ public class PetFragment extends BaseFragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        view = inflater.inflate(R.layout.fragment_pet, container, false);
+        rootView = inflater.inflate(R.layout.fragment_pet, container, false);
+        mViewModel = new ViewModelProvider(this).get(PetViewModel.class);
 
-        petTypeSpinner = view.findViewById(R.id.pet_type_spinner);
-        genderTypeSpinner = view.findViewById(R.id.gender_type_spinner);
-        imagesRecyclerView = view.findViewById(R.id.images_recyclerview);
+        setupUI();
+        setupRecyclerView();
+        setupObservers();
+
+        return rootView;
+    }
+
+    private void setupUI() {
+        petTypeSpinner = rootView.findViewById(R.id.pet_type_spinner);
+        genderTypeSpinner = rootView.findViewById(R.id.gender_type_spinner);
+        ExtendedFloatingActionButton addPetImage = rootView.findViewById(R.id.addPetImage);
+        Button savePetButton = rootView.findViewById(R.id.savePetButton);
 
         ArrayAdapter<CharSequence> adapterPet = new ArrayAdapter<>(getContext(), R.layout.spinner_item, getResources().getStringArray(R.array.animal_types));
         ArrayAdapter<CharSequence> adapterGender = new ArrayAdapter<>(getContext(), R.layout.spinner_item, getResources().getStringArray(R.array.gender_type));
@@ -63,35 +74,48 @@ public class PetFragment extends BaseFragment {
         petTypeSpinner.setAdapter(adapterPet);
         genderTypeSpinner.setAdapter(adapterGender);
 
-        imagesRecyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-        imagesAdapter = new ImagesAdapter(getContext(), imagesUriList);
-        imagesRecyclerView.setAdapter(imagesAdapter);
-
-        ExtendedFloatingActionButton addPetImage = view.findViewById(R.id.addPetImage);
-        addPetImage.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_PICK);
-            intent.setType("image/*");
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            startActivityForResult(Intent.createChooser(intent, "Select Picture"), IMAGE_PICK_CODE);
-        });
-
-        Button savePetButton = view.findViewById(R.id.savePetButton);
+        addPetImage.setOnClickListener(v -> openImagePicker());
         savePetButton.setOnClickListener(v -> {
             if (validateInputs()) {
                 uploadImagesAndSavePet();
             }
         });
+    }
 
-        return view;
+    private void setupRecyclerView() {
+        imagesRecyclerView = rootView.findViewById(R.id.images_recyclerview);
+        imagesRecyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        imagesAdapter = new ImagesAdapter(getContext(), imagesUriList);
+        imagesRecyclerView.setAdapter(imagesAdapter);
+    }
+
+    private void setupObservers() {
+        mViewModel.getImagesUriList().observe(getViewLifecycleOwner(), images -> imagesAdapter.notifyDataSetChanged());
+        mViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            if (isLoading) {
+                showLoadingIndicator();
+            } else {
+                hideLoadingIndicator();
+            }
+        });
+    }
+
+    private void openImagePicker() {
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), IMAGE_PICK_CODE);
     }
 
     private boolean validateInputs() {
+        EditText ageEditText = rootView.findViewById(R.id.age_edittext);
+        EditText descriptionEditText = rootView.findViewById(R.id.editTextTextMultiLine);
+
         if (petTypeSpinner.getSelectedItem() == null ||
                 genderTypeSpinner.getSelectedItem() == null ||
-                ((EditText) getView().findViewById(R.id.age_edittext)).getText().toString().trim().isEmpty() ||
-                ((EditText) getView().findViewById(R.id.editTextTextMultiLine)).getText().toString().trim().isEmpty() ||
+                ageEditText.getText().toString().trim().isEmpty() ||
+                descriptionEditText.getText().toString().trim().isEmpty() ||
                 imagesUriList.isEmpty()) {
-
             Toast.makeText(getContext(), "All fields and at least one image are required", Toast.LENGTH_LONG).show();
             return false;
         }
@@ -99,21 +123,18 @@ public class PetFragment extends BaseFragment {
     }
 
     private void uploadImagesAndSavePet() {
-        showLoadingIndicator();  // Show loading when starting to upload images
         if (imagesUriList.isEmpty()) {
             Toast.makeText(getContext(), "Please select at least one image.", Toast.LENGTH_SHORT).show();
-            hideLoadingIndicator();  // Hide loading if there are no images to upload
             return;
         }
 
-        uploadedUrls.clear();  // Clear previously uploaded URLs
-
+        mViewModel.setLoading(true);
+        uploadedUrls.clear();
         for (Uri uri : imagesUriList) {
             uploadImageToFirebase(uri, new ImageUploadCallback() {
                 @Override
                 public void onUploadSuccess(String imageUrl) {
                     uploadedUrls.add(imageUrl);
-                    // Check if all images are uploaded
                     if (uploadedUrls.size() == imagesUriList.size()) {
                         savePetData(uploadedUrls);
                     }
@@ -122,69 +143,60 @@ public class PetFragment extends BaseFragment {
                 @Override
                 public void onUploadFailure(Exception e) {
                     Toast.makeText(getContext(), "Failed to upload image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    hideLoadingIndicator();  // Hide loading indicator if the upload fails
+                    mViewModel.setLoading(false);
                 }
             });
         }
     }
 
-
     private void uploadImageToFirebase(Uri imageUri, ImageUploadCallback callback) {
-        // Reference to where the image will be stored in Firebase Storage
         StorageReference storageRef = FirebaseStorage.getInstance().getReference("pet_images/" + System.currentTimeMillis() + "_pet_image");
 
-        // Upload the image file to Firebase Storage
         storageRef.putFile(imageUri)
                 .continueWithTask(task -> {
                     if (!task.isSuccessful() && task.getException() != null) {
                         throw task.getException();
                     }
-                    // After the upload is done, request the public download URL
                     return storageRef.getDownloadUrl();
                 })
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
-                        // Call the onUploadSuccess in the callback with the URL
                         callback.onUploadSuccess(task.getResult().toString());
                     } else if (task.getException() != null) {
-                        // Call the onUploadFailure in the callback
                         callback.onUploadFailure(task.getException());
                     }
                 });
     }
 
-
     private void savePetData(List<String> imageUrls) {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null) {
             String type = petTypeSpinner.getSelectedItem().toString();
-            String age = ((EditText) getView().findViewById(R.id.age_edittext)).getText().toString();
+            String age = ((EditText) rootView.findViewById(R.id.age_edittext)).getText().toString();
             String gender = genderTypeSpinner.getSelectedItem().toString();
-            String description = ((EditText) getView().findViewById(R.id.editTextTextMultiLine)).getText().toString();
+            String description = ((EditText) rootView.findViewById(R.id.editTextTextMultiLine)).getText().toString();
 
             Pet newPet = new Pet(type, age, gender, description, imageUrls);
-            newPet.setUserId(user.getUid());  // Set the user ID
+            newPet.setUserId(user.getUid());
 
             DatabaseReference userPetsRef = FirebaseDatabase.getInstance().getReference("pets").child(user.getUid());
-            String petKey = userPetsRef.push().getKey(); // Generate a unique key for the pet
+            String petKey = userPetsRef.push().getKey();
             newPet.setUid(petKey);
             userPetsRef.child(petKey).setValue(newPet)
                     .addOnSuccessListener(aVoid -> {
                         Toast.makeText(getContext(), "Pet saved successfully!", Toast.LENGTH_SHORT).show();
-                        navigateBack();  // Navigate back after successful operation
-                        hideLoadingIndicator();  // Hide loading indicator on success
+                        navigateBack();
+                        mViewModel.setLoading(false);
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(getContext(), "Failed to save pet.", Toast.LENGTH_SHORT).show();
-                        hideLoadingIndicator();  // Hide loading indicator on failure
+                        mViewModel.setLoading(false);
                     });
         } else {
             Toast.makeText(getContext(), "User not logged in!", Toast.LENGTH_SHORT).show();
-            hideLoadingIndicator();  // Hide loading indicator if user is not logged in
+            mViewModel.setLoading(false);
         }
     }
-
-
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -207,18 +219,18 @@ public class PetFragment extends BaseFragment {
         imagesAdapter.notifyDataSetChanged();
     }
 
-    interface ImageUploadCallback {
-        void onUploadSuccess(String imageUrl);
-
-        void onUploadFailure(Exception e);
-    }
     private void showLoadingIndicator() {
-        ProgressBar loadingIndicator = view.findViewById(R.id.loadingIndicator);
+        ProgressBar loadingIndicator = rootView.findViewById(R.id.loadingIndicator);
         loadingIndicator.setVisibility(View.VISIBLE);
     }
 
     private void hideLoadingIndicator() {
-        ProgressBar loadingIndicator = view.findViewById(R.id.loadingIndicator);
+        ProgressBar loadingIndicator = rootView.findViewById(R.id.loadingIndicator);
         loadingIndicator.setVisibility(View.GONE);
+    }
+
+    interface ImageUploadCallback {
+        void onUploadSuccess(String imageUrl);
+        void onUploadFailure(Exception e);
     }
 }

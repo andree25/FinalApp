@@ -17,7 +17,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -35,7 +37,7 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.List;
 
 public class PetDetailFragment extends Fragment {
-    private Pet pet;
+    private PetDetailViewModel petDetailViewModel;
     private ImageView mainImage;
     private Handler imageSwitcherHandler;
     private Runnable imageSwitcherRunnable;
@@ -47,57 +49,24 @@ public class PetDetailFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        petDetailViewModel = new ViewModelProvider(this).get(PetDetailViewModel.class);
         imageSwitcherHandler = new Handler();
+
         if (getArguments() != null) {
-            pet = (Pet) getArguments().getSerializable("pet");
+            Pet pet = (Pet) getArguments().getSerializable("pet");
             if (pet == null) {
                 Log.e(TAG, "No pet data available, returning to previous screen.");
             } else {
+                petDetailViewModel.setPet(pet);
                 imageUrls = pet.getImageUrls();
             }
         }
     }
 
-    private void startImageSlideshow() {
-        Animation fadeOut = AnimationUtils.loadAnimation(getContext(), R.anim.fade_out);
-        Animation fadeIn = AnimationUtils.loadAnimation(getContext(), R.anim.fade_in);
-        fadeOut.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-            }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                // After fade out, load next image and fade it in
-                Glide.with(getContext())
-                        .load(imageUrls.get(currentImageIndex))
-                        .into(mainImage);
-                mainImage.startAnimation(fadeIn);
-                currentImageIndex = (currentImageIndex + 1) % imageUrls.size();
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-            }
-        });
-
-        imageSwitcherRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (getContext() == null) return;
-                mainImage.startAnimation(fadeOut);
-                imageSwitcherHandler.postDelayed(this, IMAGE_SWITCH_DELAY);
-            }
-        };
-        imageSwitcherHandler.post(imageSwitcherRunnable);
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_pet_detail, container, false);
-        if (pet != null) {
-            setupViews(view);
-        }
+        setupViews(view);
         return view;
     }
 
@@ -109,49 +78,71 @@ public class PetDetailFragment extends Fragment {
         TextView petDescription = view.findViewById(R.id.pet_description);
         Button emailButton = view.findViewById(R.id.send_email_button);
         TextView textButton = view.findViewById(R.id.textButton);
-        petType.setText(pet.getType());
-        petAge.setText(pet.getAge());
-        petGender.setText(pet.getGender());
-        petDescription.setText(pet.getDescription());
 
-        if (imageUrls != null && !imageUrls.isEmpty()) {
-            startImageSlideshow();
-        }
-        emailButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                fetchUserEmailAndSendEmail();
+        petDetailViewModel.getPet().observe(getViewLifecycleOwner(), pet -> {
+            petType.setText(pet.getType());
+            petAge.setText(pet.getAge());
+            petGender.setText(pet.getGender());
+            petDescription.setText(pet.getDescription());
+
+            if (imageUrls != null && !imageUrls.isEmpty()) {
+                startImageSlideshow();
             }
-        });
 
-        textButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
+            emailButton.setOnClickListener(v -> fetchUserEmailAndSendEmail(pet));
+
+            textButton.setOnClickListener(v -> {
                 FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                 if (currentUser != null && currentUser.getUid().equals(pet.getUserId())) {
-                    confirmAndDeletePet();
+                    confirmAndDeletePet(pet);
                 } else {
                     Toast.makeText(getContext(), "You do not have permission to delete this pet.", Toast.LENGTH_SHORT).show();
                 }
-            }
+            });
         });
     }
 
-    private void confirmAndDeletePet() {
+    private void startImageSlideshow() {
+        Animation fadeOut = AnimationUtils.loadAnimation(getContext(), R.anim.fade_out);
+        Animation fadeIn = AnimationUtils.loadAnimation(getContext(), R.anim.fade_in);
+
+        fadeOut.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {}
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                Glide.with(getContext())
+                        .load(imageUrls.get(currentImageIndex))
+                        .into(mainImage);
+                mainImage.startAnimation(fadeIn);
+                currentImageIndex = (currentImageIndex + 1) % imageUrls.size();
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {}
+        });
+
+        imageSwitcherRunnable = () -> {
+            if (getContext() == null) return;
+            mainImage.startAnimation(fadeOut);
+            imageSwitcherHandler.postDelayed(this.imageSwitcherRunnable, IMAGE_SWITCH_DELAY);
+        };
+
+        imageSwitcherHandler.post(imageSwitcherRunnable);
+    }
+
+    private void confirmAndDeletePet(Pet pet) {
         new AlertDialog.Builder(getContext())
                 .setTitle("Delete Pet")
                 .setMessage("Are you sure you want to delete this pet?")
-                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        deletePet();
-                    }
-                })
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> deletePet(pet))
                 .setNegativeButton(android.R.string.no, null)
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .show();
     }
 
-    private void deletePet() {
+    private void deletePet(Pet pet) {
         if (pet.getUid() == null || pet.getUid().isEmpty()) {
             Toast.makeText(getContext(), "Error: Pet key is missing.", Toast.LENGTH_SHORT).show();
             return;
@@ -167,8 +158,7 @@ public class PetDetailFragment extends Fragment {
                 .addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to delete pet: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
-
-    private void fetchUserEmailAndSendEmail() {
+    private void fetchUserEmailAndSendEmail(Pet pet) {
         if (pet.getUserId() == null || pet.getUserId().isEmpty()) {
             Log.e(TAG, "User ID is null or empty");
             Toast.makeText(getContext(), "User ID is missing.", Toast.LENGTH_SHORT).show();
@@ -181,7 +171,7 @@ public class PetDetailFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 if (dataSnapshot.exists()) {
                     String email = dataSnapshot.child("email").getValue(String.class);
-                    sendEmail(email);
+                    sendEmail(email, pet);
                 } else {
                     Log.e(TAG, "User not found");
                     Toast.makeText(getContext(), "User not found.", Toast.LENGTH_SHORT).show();
@@ -196,11 +186,10 @@ public class PetDetailFragment extends Fragment {
         });
     }
 
-
-    private void sendEmail(String emailAddress) {
+    private void sendEmail(String emailAddress, Pet pet) {
         String[] addresses = {emailAddress}; // Email address fetched from the database
         String subject = "Inquiry about " + pet.getType();
-        String body = "Hello! \n I am interested in your " + pet.getType() + ", aged " + pet.getAge() + ", gender: " + pet.getGender() + ". \nCould you please let me know if the Animal is still available for adoption?";
+        String body = "Hello! \nI am interested in your " + pet.getType() + ", aged " + pet.getAge() + ", gender: " + pet.getGender() + ". \nCould you please let me know if the Animal is still available for adoption?";
 
         Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("message/rfc822");
@@ -222,5 +211,4 @@ public class PetDetailFragment extends Fragment {
             imageSwitcherHandler.removeCallbacks(imageSwitcherRunnable);
         }
     }
-
 }
