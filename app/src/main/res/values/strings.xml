@@ -89,4 +89,6 @@
     <string name="adopt_me">Adopt me!</string>
     <string name="test_button">Was this Pet \n already adopted?</string>
 
+    <string name="see_more">Click to see more!</string>
+
 </resources>

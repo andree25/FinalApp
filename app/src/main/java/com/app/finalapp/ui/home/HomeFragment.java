@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -16,11 +17,11 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.app.finalapp.databinding.FragmentHomeBinding;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.io.IOException;
 import java.util.List;
@@ -41,11 +42,11 @@ public class HomeFragment extends Fragment {
     private final String API_KEY = "AIzaSyC2kJo3orR-fjfK2hVuDm14pJibpLvOMV4";
     private final String CX = "34b03732c16d245be";
     private final String DEFAULT_COUNTRY = "United States";
+    private ProgressBar progressBar;
+    private SwipeRefreshLayout swipeRefreshLayout;
 
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
-        HomeViewModel homeViewModel =
-                new ViewModelProvider(this).get(HomeViewModel.class);
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        HomeViewModel homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
 
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
@@ -55,10 +56,17 @@ public class HomeFragment extends Fragment {
         articleAdapter = new ArticleAdapter(getContext());
         recyclerView.setAdapter(articleAdapter);
 
+        progressBar = binding.progressBar; // Initialize the progress bar
+        swipeRefreshLayout = binding.swipeRefreshLayout; // Initialize the swipe refresh layout
+
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            // Reload the data when the user performs a pull-to-refresh gesture
+            getLastKnownLocation();
+        });
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
 
-        if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
         } else {
             getLastKnownLocation();
@@ -68,20 +76,16 @@ public class HomeFragment extends Fragment {
     }
 
     private void getLastKnownLocation() {
-        if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            fusedLocationClient.getLastLocation()
-                    .addOnSuccessListener(getActivity(), new OnSuccessListener<Location>() {
-                        @Override
-                        public void onSuccess(Location location) {
-                            if (location != null) {
-                                fetchCountryFromLocation(location);
-                            } else {
-                                Toast.makeText(getContext(), "Location not found. Using default country.", Toast.LENGTH_SHORT).show();
-                                fetchAnimalData(DEFAULT_COUNTRY);
-                            }
-                        }
-                    });
+        if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            progressBar.setVisibility(View.VISIBLE); // Show progress bar
+            fusedLocationClient.getLastLocation().addOnSuccessListener(getActivity(), location -> {
+                if (location != null) {
+                    fetchCountryFromLocation(location);
+                } else {
+                    Toast.makeText(getContext(), "Location not found. Using default country.", Toast.LENGTH_SHORT).show();
+                    fetchAnimalData(DEFAULT_COUNTRY);
+                }
+            });
         } else {
             fetchAnimalData(DEFAULT_COUNTRY);
         }
@@ -106,10 +110,7 @@ public class HomeFragment extends Fragment {
     }
 
     private void fetchAnimalData(String country) {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://www.googleapis.com/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://www.googleapis.com/").addConverterFactory(GsonConverterFactory.create()).build();
 
         GoogleSearchApiService service = retrofit.create(GoogleSearchApiService.class);
         String query = "Animals in " + country;
@@ -117,6 +118,8 @@ public class HomeFragment extends Fragment {
         call.enqueue(new Callback<SearchResponse>() {
             @Override
             public void onResponse(Call<SearchResponse> call, Response<SearchResponse> response) {
+                progressBar.setVisibility(View.GONE); // Hide progress bar
+                swipeRefreshLayout.setRefreshing(false); // Stop the swipe refresh animation
                 if (response.isSuccessful() && response.body() != null) {
                     displayAnimals(response.body().getItems());
                 } else {
@@ -127,6 +130,8 @@ public class HomeFragment extends Fragment {
 
             @Override
             public void onFailure(Call<SearchResponse> call, Throwable t) {
+                progressBar.setVisibility(View.GONE); // Hide progress bar
+                swipeRefreshLayout.setRefreshing(false); // Stop the swipe refresh animation
                 binding.recyclerViewHome.setVisibility(View.GONE);
                 Toast.makeText(getContext(), "Failed to fetch data.", Toast.LENGTH_SHORT).show();
             }
