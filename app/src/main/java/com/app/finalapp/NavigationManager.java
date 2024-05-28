@@ -30,4 +30,8 @@ public class NavigationManager {
     public Integer getCurrentFragmentId() {
         return !navigationStack.isEmpty() ? navigationStack.peek() : null;
     }
+
+    public void clearStack() {
+        navigationStack.clear();
+    }
 }

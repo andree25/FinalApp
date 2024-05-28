@@ -1,7 +1,6 @@
 package com.app.finalapp.ui.home;
 
 import android.content.pm.PackageManager;
-import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
@@ -23,128 +22,113 @@ import com.app.finalapp.databinding.FragmentHomeBinding;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
-
 public class HomeFragment extends Fragment {
+
+    private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
 
     private FragmentHomeBinding binding;
     private ArticleAdapter articleAdapter;
     private FusedLocationProviderClient fusedLocationClient;
-    private final int LOCATION_PERMISSION_REQUEST_CODE = 1;
-    private final String API_KEY = "AIzaSyC2kJo3orR-fjfK2hVuDm14pJibpLvOMV4";
-    private final String CX = "34b03732c16d245be";
-    private final String DEFAULT_COUNTRY = "United States";
     private ProgressBar progressBar;
     private SwipeRefreshLayout swipeRefreshLayout;
+    private HomeViewModel homeViewModel;
 
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        HomeViewModel homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
-
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        RecyclerView recyclerView = binding.recyclerViewHome;
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        articleAdapter = new ArticleAdapter(getContext());
-        recyclerView.setAdapter(articleAdapter);
+        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
 
-        progressBar = binding.progressBar; // Initialize the progress bar
-        swipeRefreshLayout = binding.swipeRefreshLayout; // Initialize the swipe refresh layout
-
-        swipeRefreshLayout.setOnRefreshListener(() -> {
-            // Reload the data when the user performs a pull-to-refresh gesture
-            getLastKnownLocation();
-        });
+        initializeUIElements();
+        setupRecyclerView();
+        setupSwipeRefreshLayout();
+        observeViewModel();
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
 
-        if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
-        } else {
+        if (hasLocationPermission()) {
             getLastKnownLocation();
+        } else {
+            requestLocationPermissions();
         }
 
         return root;
     }
 
-    private void getLastKnownLocation() {
-        if (ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            progressBar.setVisibility(View.VISIBLE); // Show progress bar
-            fusedLocationClient.getLastLocation().addOnSuccessListener(getActivity(), location -> {
-                if (location != null) {
-                    fetchCountryFromLocation(location);
-                } else {
-                    Toast.makeText(getContext(), "Location not found. Using default country.", Toast.LENGTH_SHORT).show();
-                    fetchAnimalData(DEFAULT_COUNTRY);
-                }
-            });
-        } else {
-            fetchAnimalData(DEFAULT_COUNTRY);
-        }
+    private void initializeUIElements() {
+        progressBar = binding.progressBar;
+        swipeRefreshLayout = binding.swipeRefreshLayout;
     }
 
-    private void fetchCountryFromLocation(Location location) {
-        Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
-        try {
-            List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
-            if (addresses != null && !addresses.isEmpty()) {
-                String country = addresses.get(0).getCountryName();
-                fetchAnimalData(country);
+    private void setupRecyclerView() {
+        RecyclerView recyclerView = binding.recyclerViewHome;
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        articleAdapter = new ArticleAdapter(getContext());
+        recyclerView.setAdapter(articleAdapter);
+    }
+
+    private void setupSwipeRefreshLayout() {
+        swipeRefreshLayout.setOnRefreshListener(this::getLastKnownLocation);
+    }
+
+    private void observeViewModel() {
+        homeViewModel.getArticles().observe(getViewLifecycleOwner(), articles -> {
+            if (articles != null && !articles.isEmpty()) {
+                articleAdapter.updateArticles(articles);
+                binding.recyclerViewHome.setVisibility(View.VISIBLE);
             } else {
-                Toast.makeText(getContext(), "Unable to determine the country from the location. Using default country.", Toast.LENGTH_SHORT).show();
-                fetchAnimalData(DEFAULT_COUNTRY);
-            }
-        } catch (IOException e) {
-            Toast.makeText(getContext(), "Geocoder service is not available. Using default country.", Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
-            fetchAnimalData(DEFAULT_COUNTRY);
-        }
-    }
-
-    private void fetchAnimalData(String country) {
-        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://www.googleapis.com/").addConverterFactory(GsonConverterFactory.create()).build();
-
-        GoogleSearchApiService service = retrofit.create(GoogleSearchApiService.class);
-        String query = "Animals in " + country;
-        Call<SearchResponse> call = service.getSearchResults(API_KEY, CX, query);
-        call.enqueue(new Callback<SearchResponse>() {
-            @Override
-            public void onResponse(Call<SearchResponse> call, Response<SearchResponse> response) {
-                progressBar.setVisibility(View.GONE); // Hide progress bar
-                swipeRefreshLayout.setRefreshing(false); // Stop the swipe refresh animation
-                if (response.isSuccessful() && response.body() != null) {
-                    displayAnimals(response.body().getItems());
-                } else {
-                    binding.recyclerViewHome.setVisibility(View.GONE);
-                    Toast.makeText(getContext(), "No results found.", Toast.LENGTH_SHORT).show();
-                }
-            }
-
-            @Override
-            public void onFailure(Call<SearchResponse> call, Throwable t) {
-                progressBar.setVisibility(View.GONE); // Hide progress bar
-                swipeRefreshLayout.setRefreshing(false); // Stop the swipe refresh animation
                 binding.recyclerViewHome.setVisibility(View.GONE);
-                Toast.makeText(getContext(), "Failed to fetch data.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getContext(), "No results found.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        homeViewModel.getIsLoading().observe(getViewLifecycleOwner(), isLoading -> {
+            if (isLoading) {
+                progressBar.setVisibility(View.VISIBLE);
+            } else {
+                progressBar.setVisibility(View.GONE);
+                swipeRefreshLayout.setRefreshing(false);
+            }
+        });
+
+        homeViewModel.getMessage().observe(getViewLifecycleOwner(), message -> {
+            if (message != null) {
+                Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void displayAnimals(List<SearchResponse.Item> items) {
-        if (items == null || items.isEmpty()) {
-            binding.recyclerViewHome.setVisibility(View.GONE);
-            Toast.makeText(getContext(), "No animal information available.", Toast.LENGTH_SHORT).show();
+    private boolean hasLocationPermission() {
+        return ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ActivityCompat.checkSelfPermission(getContext(), android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private void requestLocationPermissions() {
+        requestPermissions(new String[]{android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_PERMISSION_REQUEST_CODE);
+    }
+
+    private void getLastKnownLocation() {
+        if (hasLocationPermission()) {
+            try {
+                progressBar.setVisibility(View.VISIBLE);
+                fusedLocationClient.getLastLocation().addOnSuccessListener(getActivity(), this::handleLocationResult);
+            } catch (SecurityException e) {
+                Toast.makeText(getContext(), "Location permission denied.", Toast.LENGTH_SHORT).show();
+            }
         } else {
-            binding.recyclerViewHome.setVisibility(View.VISIBLE);
-            articleAdapter.updateArticles(items);
+            homeViewModel.fetchAnimalData(homeViewModel.getDefaultCountry());
+        }
+    }
+
+    private void handleLocationResult(Location location) {
+        if (location != null) {
+            homeViewModel.fetchCountryFromLocation(location, new Geocoder(getContext(), Locale.getDefault()));
+        } else {
+            Toast.makeText(getContext(), "Location not found. Using default country.", Toast.LENGTH_SHORT).show();
+            homeViewModel.fetchAnimalData(homeViewModel.getDefaultCountry());
         }
     }
 
@@ -156,7 +140,7 @@ public class HomeFragment extends Fragment {
                 getLastKnownLocation();
             } else {
                 Toast.makeText(getContext(), "Location permission denied. Using default country.", Toast.LENGTH_SHORT).show();
-                fetchAnimalData(DEFAULT_COUNTRY);
+                homeViewModel.fetchAnimalData(homeViewModel.getDefaultCountry());
             }
         }
     }

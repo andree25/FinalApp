@@ -2,14 +2,13 @@ package com.app.finalapp;
 
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.Menu;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.core.view.GravityCompat;
@@ -34,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
     private FirebaseAuth mAuth;
+    private NavController navController;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,11 +47,12 @@ public class MainActivity extends AppCompatActivity {
         NavigationView navigationView = binding.navView;
 
         mAppBarConfiguration = new AppBarConfiguration.Builder(
-                R.id.nav_home, R.id.nav_adopt, R.id.nav_chat, R.id.nav_donate, R.id.nav_groom, R.id.nav_shelter, R.id.nav_vet)
+                R.id.nav_home, R.id.nav_adopt, R.id.nav_chat, R.id.nav_donate,
+                R.id.nav_groom, R.id.nav_shelter, R.id.nav_vet)
                 .setOpenableLayout(drawer)
                 .build();
 
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
+        navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         NavigationUI.setupWithNavController(navigationView, navController);
 
@@ -82,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
             mAuth.signOut();
             updateNavigationHeader();
             Toast.makeText(this, "Logged out successfully!", Toast.LENGTH_SHORT).show();
-            NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
             navController.navigate(R.id.nav_home);
             return true;
         } else if (id == R.id.action_admin) {
@@ -94,7 +94,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void navigateToAdminLogin() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
         navController.navigate(R.id.nav_login);
         DrawerLayout drawer = binding.drawerLayout;
         if (drawer.isDrawerOpen(GravityCompat.START)) {
@@ -142,9 +141,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onSupportNavigateUp() {
-        NavController navController = Navigation.findNavController(this, R.id.nav_host_fragment_content_main);
-        return NavigationUI.navigateUp(navController, mAppBarConfiguration)
-                || super.onSupportNavigateUp();
+        return NavigationUI.navigateUp(navController, mAppBarConfiguration) || super.onSupportNavigateUp();
     }
 
     @Override

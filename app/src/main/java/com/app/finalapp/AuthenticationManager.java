@@ -4,6 +4,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
 import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
@@ -32,16 +33,25 @@ public class AuthenticationManager {
         isUserLoggedIn.setValue(getCurrentUser() != null);
         currentUserLiveData.setValue(getCurrentUser());
 
+        mAuth.addAuthStateListener(firebaseAuth -> {
+            FirebaseUser user = firebaseAuth.getCurrentUser();
+            isUserLoggedIn.setValue(user != null);
+            currentUserLiveData.setValue(user);
+        });
     }
+
     public LiveData<Boolean> isUserLoggedIn() {
         return isUserLoggedIn;
     }
+
     public LiveData<FirebaseUser> getCurrentUserLiveData() {
         return currentUserLiveData;
     }
+
     public void checkUserLoggedIn() {
         isUserLoggedIn.setValue(getCurrentUser() != null);
     }
+
     public void registerUser(@NonNull String email, @NonNull String password, @NonNull String name, @NonNull String forname, @NonNull Uri imageUri, @NonNull Context context, AuthCallback callback) {
         if (isValidEmail(email) && isValidPassword(password)) {
             mAuth.createUserWithEmailAndPassword(email, password)
@@ -151,8 +161,10 @@ public class AuthenticationManager {
                     }
                 });
     }
+
     public interface AuthCallback {
         void onSuccess();
+
         void onFailure(String errorMessage);
     }
 
