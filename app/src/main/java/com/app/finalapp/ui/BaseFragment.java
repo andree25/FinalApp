@@ -16,13 +16,18 @@ import com.app.finalapp.NavigationManager;
 import com.app.finalapp.R;
 import com.bumptech.glide.Glide;
 import com.google.android.material.navigation.NavigationView;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import android.util.Log;
+import android.widget.Toast;
 
 public abstract class BaseFragment extends Fragment {
     protected AuthenticationManager authManager;
@@ -117,9 +122,31 @@ public abstract class BaseFragment extends Fragment {
                 navEmail.requestLayout();
             }
             if (navImageView != null) {
-                Glide.with(this).load(imageUrl).into(navImageView);
-                navImageView.invalidate();
-                navImageView.requestLayout();
+                if (imageUrl != null && !imageUrl.isEmpty()) {
+                    // Ensure the user is authenticated
+                    FirebaseAuth auth = FirebaseAuth.getInstance();
+                    FirebaseUser user = auth.getCurrentUser();
+                    if (user != null) {
+                        // Use Firebase Storage Reference to get the download URL
+                        FirebaseStorage storage = FirebaseStorage.getInstance();
+                        StorageReference storageRef = storage.getReferenceFromUrl(imageUrl);
+
+                        storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                            Glide.with(this)
+                                    .load(uri)
+                                    .placeholder(R.drawable.groom_icon) // Replace with your default placeholder
+                                    .error(R.drawable.groom_icon) // Replace with your error image
+                                    .into(navImageView);
+                        }).addOnFailureListener(e -> {
+                            Log.e("BaseFragment", "Failed to get download URL", e);
+                            // Handle failure to get the URL (e.g., set a default image)
+                            navImageView.setImageResource(R.drawable.groom_icon);
+                        });
+                    }
+                } else {
+                    // Set a default image if imageUrl is null or empty
+                    navImageView.setImageResource(R.drawable.groom_icon);
+                }
             }
         }
     }

@@ -59,9 +59,10 @@ public class AuthenticationManager {
                         if (task.isSuccessful()) {
                             FirebaseUser user = mAuth.getCurrentUser();
                             if (user != null) {
-                                saveUserDataToDatabase(user.getUid(), email, name, forname, password, imageUri, context);
+                                saveUserDataToDatabase(user.getUid(), email, name, forname, password, imageUri, context, callback);
+                            } else {
+                                callback.onFailure("User registration failed");
                             }
-                            callback.onSuccess();
                         } else {
                             callback.onFailure(task.getException().getMessage());
                         }
@@ -96,7 +97,7 @@ public class AuthenticationManager {
         return mAuth.getCurrentUser();
     }
 
-    private void saveUserDataToDatabase(String userId, String email, String name, String forname, String password, Uri imageUri, Context context) {
+    private void saveUserDataToDatabase(String userId, String email, String name, String forname, String password, Uri imageUri, Context context, AuthCallback callback) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("name", name);
         userMap.put("forname", forname);
@@ -110,16 +111,17 @@ public class AuthenticationManager {
                     if (task.isSuccessful()) {
                         // Data saved successfully
                         // Now, upload the image to Firebase Storage
-                        uploadImageToStorage(userId, imageUri, context);
+                        uploadImageToStorage(userId, imageUri, context, callback);
                     } else {
                         // If saving data fails, display a message to the user.
                         Toast.makeText(context, "Failed to save user data. " + task.getException().getMessage(),
                                 Toast.LENGTH_LONG).show();
+                        callback.onFailure("Failed to save user data.");
                     }
                 });
     }
 
-    private void uploadImageToStorage(String userId, Uri imageUri, Context context) {
+    private void uploadImageToStorage(String userId, Uri imageUri, Context context, AuthCallback callback) {
         // Get a reference to the Firebase Storage location where the image will be stored
         StorageReference storageRef = FirebaseStorage.getInstance().getReference().child("user_images").child(userId);
 
@@ -131,22 +133,24 @@ public class AuthenticationManager {
                         storageRef.getDownloadUrl()
                                 .addOnSuccessListener(uri -> {
                                     // Update the user's data in the Realtime Database with the image URL
-                                    updateImageUrlInDatabase(userId, uri.toString(), context);
+                                    updateImageUrlInDatabase(userId, uri.toString(), context, callback);
                                 })
                                 .addOnFailureListener(e -> {
                                     // Handle the case where getting the image URL fails
                                     Toast.makeText(context, "Failed to get image URL. " + e.getMessage(),
                                             Toast.LENGTH_LONG).show();
+                                    callback.onFailure("Failed to get image URL.");
                                 });
                     } else {
                         // Handle the case where image upload fails
                         Toast.makeText(context, "Failed to upload image. " + task.getException().getMessage(),
                                 Toast.LENGTH_LONG).show();
+                        callback.onFailure("Failed to upload image.");
                     }
                 });
     }
 
-    private void updateImageUrlInDatabase(String userId, String imageUrl, Context context) {
+    private void updateImageUrlInDatabase(String userId, String imageUrl, Context context, AuthCallback callback) {
         // Update the user's data in the Realtime Database with the image URL
         mDatabase.child(userId).child("imageUrl").setValue(imageUrl)
                 .addOnCompleteListener(task -> {
@@ -154,10 +158,12 @@ public class AuthenticationManager {
                         // Image URL saved successfully
                         Log.d("AuthenticationManager", "Image URL saved successfully");
                         Toast.makeText(context, "Registration successful!", Toast.LENGTH_LONG).show();
+                        callback.onSuccess();
                     } else {
                         // If saving image URL fails, display a message to the user.
                         Toast.makeText(context, "Failed to save image URL. " + task.getException().getMessage(),
                                 Toast.LENGTH_LONG).show();
+                        callback.onFailure("Failed to save image URL.");
                     }
                 });
     }

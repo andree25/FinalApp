@@ -27,6 +27,7 @@ import com.braintreepayments.api.interfaces.PaymentMethodNonceCreatedListener;
 import com.braintreepayments.api.models.PayPalRequest;
 import com.braintreepayments.api.models.PaymentMethodNonce;
 import com.braintreepayments.api.PayPal;
+import com.google.android.gms.tasks.Task;
 import com.google.firebase.functions.FirebaseFunctions;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
@@ -34,8 +35,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
-public class DonationFragment extends BaseFragment implements PaymentMethodNonceCreatedListener {
+public class DonationFragment extends BaseFragment implements PaymentMethodNonceCreatedListener, BraintreeCancelListener {
     private static final String TAG = "DonationFragment";
     private BraintreeFragment mBraintreeFragment;
     private EditText amountEdt;
@@ -44,8 +47,8 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
     private DatabaseReference database;
     private NavController navController;
     private int targetFragmentId;
-
     private AuthenticationManager authManager;
+    private String transactionId;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -95,7 +98,7 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
     }
 
     private void fetchTargetAndCurrentAmount() {
-        database.child("target").get().addOnSuccessListener(dataSnapshot -> {
+        retryWithExponentialBackoff(() -> database.child("target").get().addOnSuccessListener(dataSnapshot -> {
             if (dataSnapshot.exists()) {
                 int targetAmount = dataSnapshot.getValue(Integer.class);
                 textViewTarget.setText(String.format(Locale.getDefault(), "Target: $%d", targetAmount));
@@ -104,9 +107,11 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
             } else {
                 Log.e(TAG, "Target amount not found.");
             }
-        });
+        }).addOnFailureListener(e -> {
+            Log.e(TAG, "Error fetching target amount: " + e.getMessage());
+        }));
 
-        database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
+        retryWithExponentialBackoff(() -> database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
             if (dataSnapshot.exists()) {
                 int currentAmount = dataSnapshot.getValue(Integer.class);
                 updateProgress(currentAmount);
@@ -117,14 +122,14 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
                 progressBar.setProgress(0);
             }
         }).addOnFailureListener(e -> {
-            Log.e(TAG, "Error fetching data: " + e.getMessage());
+            Log.e(TAG, "Error fetching current amount: " + e.getMessage());
             textViewCollected.setText(String.format(Locale.getDefault(), "Collected: $0"));
             progressBar.setProgress(0);
-        });
+        }));
     }
 
     private void fetchCauseDescription() {
-        database.child("cause").get().addOnSuccessListener(dataSnapshot -> {
+        retryWithExponentialBackoff(() -> database.child("cause").get().addOnSuccessListener(dataSnapshot -> {
             if (dataSnapshot.exists()) {
                 String cause = dataSnapshot.getValue(String.class);
                 donationsDescription.setText(cause);
@@ -134,15 +139,15 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Failed to fetch cause description", e);
             donationsDescription.setText("Failed to load cause.");
-        });
+        }));
     }
 
     private void fetchClientToken() {
-        FirebaseFunctions.getInstance().getHttpsCallable("generateClientToken").call().addOnSuccessListener(httpsCallableResult -> {
+        retryWithExponentialBackoff(() -> FirebaseFunctions.getInstance().getHttpsCallable("generateClientToken").call().addOnSuccessListener(httpsCallableResult -> {
             Map<String, Object> result = (Map<String, Object>) httpsCallableResult.getData();
             String clientToken = (String) result.get("clientToken");
             setupBraintree(clientToken);
-        }).addOnFailureListener(e -> Log.e(TAG, "Failed to fetch client token", e));
+        }).addOnFailureListener(e -> Log.e(TAG, "Failed to fetch client token", e)));
     }
 
     private void setupBraintree(String clientToken) {
@@ -150,7 +155,7 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
             mBraintreeFragment = BraintreeFragment.newInstance(getActivity(), clientToken);
             mBraintreeFragment.addListener(this);
             mBraintreeFragment.addListener((BraintreeErrorListener) error -> Log.e(TAG, "BraintreeError: ", error));
-            mBraintreeFragment.addListener((BraintreeCancelListener) requestCode -> Log.d(TAG, "User canceled the payment."));
+            mBraintreeFragment.addListener(this); // Added BraintreeCancelListener
         } catch (InvalidArgumentException e) {
             Log.e(TAG, "Error initializing BraintreeFragment.", e);
         }
@@ -166,6 +171,8 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
     }
 
     private void initiatePayment(String amount) {
+        transactionId = UUID.randomUUID().toString(); // Generate a unique transaction ID
+        logTransactionStart(transactionId, amount);
         PayPal.requestOneTimePayment(mBraintreeFragment, new PayPalRequest(amount));
     }
 
@@ -173,22 +180,25 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         Map<String, Object> data = new HashMap<>();
         data.put("paymentMethodNonce", nonce);
         data.put("amount", amount);
+        data.put("transactionId", transactionId); // Pass the transaction ID to ensure idempotency
 
-        FirebaseFunctions.getInstance().getHttpsCallable("processPayment").call(data)
+        retryWithExponentialBackoff(() -> FirebaseFunctions.getInstance().getHttpsCallable("processPayment").call(data)
                 .addOnSuccessListener(httpsCallableResult -> {
                     Log.d(TAG, "Payment processed successfully");
                     // Call saveDonation only after successful payment processing
                     saveDonation(amount);
+                    updateTransactionStatus(transactionId, "success");
                 })
                 .addOnFailureListener(e -> {
                     Log.e(TAG, "Failed to process payment", e);
                     Toast.makeText(getContext(), "Payment failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
+                    hideLoadingIndicator(); // Hide loading indicator if payment fails
+                    updateTransactionStatus(transactionId, "failed");
+                }));
     }
 
     private void saveDonation(int amount) {
-        // Get current amount, add new amount, and then update it in one step to avoid race conditions
-        database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
+        retryWithExponentialBackoff(() -> database.child("currentAmount").get().addOnSuccessListener(dataSnapshot -> {
             int currentAmount = dataSnapshot.exists() ? dataSnapshot.getValue(Integer.class) : 0;
             int updatedAmount = currentAmount + amount;
             database.child("currentAmount").setValue(updatedAmount)
@@ -205,7 +215,7 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
                     });
         }).addOnFailureListener(e -> {
             Log.e(TAG, "Failed to fetch current donation amount", e);
-        });
+        }));
     }
 
     private void updateProgress(int currentAmount) {
@@ -220,5 +230,50 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
 
     private void hideLoadingIndicator() {
         loadingProgressBar.setVisibility(View.GONE);
+    }
+
+    private void retryWithExponentialBackoff(Runnable task) {
+        int maxRetries = 5;
+        int initialDelay = 1000; // Initial delay in milliseconds
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                task.run();
+                return; // Task succeeded
+            } catch (Exception e) {
+                Log.e(TAG, "Task failed, attempt " + (i + 1), e);
+                try {
+                    TimeUnit.MILLISECONDS.sleep(initialDelay * (long) Math.pow(2, i));
+                } catch (InterruptedException interruptedException) {
+                    Log.e(TAG, "Retry interrupted", interruptedException);
+                }
+            }
+        }
+        Log.e(TAG, "Task failed after " + maxRetries + " attempts");
+    }
+
+    private void logTransactionStart(String transactionId, String amount) {
+        // Log the start of the transaction
+        Map<String, Object> transactionData = new HashMap<>();
+        transactionData.put("transactionId", transactionId);
+        transactionData.put("amount", amount);
+        transactionData.put("status", "pending");
+
+        FirebaseDatabase.getInstance().getReference("transactions").child(transactionId).setValue(transactionData)
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to log transaction start", e));
+    }
+
+    private void updateTransactionStatus(String transactionId, String status) {
+        // Update the status of the transaction
+        FirebaseDatabase.getInstance().getReference("transactions").child(transactionId).child("status").setValue(status)
+                .addOnFailureListener(e -> Log.e(TAG, "Failed to update transaction status", e));
+    }
+
+    @Override
+    public void onCancel(int requestCode) {
+        // Handle the cancellation of the payment
+        Log.d(TAG, "Payment was cancelled by the user.");
+        hideLoadingIndicator();
+        updateTransactionStatus(transactionId, "cancelled");
+        Toast.makeText(getContext(), "Payment was cancelled.", Toast.LENGTH_SHORT).show();
     }
 }
