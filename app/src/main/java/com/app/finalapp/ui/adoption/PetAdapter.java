@@ -53,7 +53,7 @@ public class PetAdapter extends RecyclerView.Adapter<PetAdapter.PetViewHolder> {
 
         void bind(Pet pet, OnPetClickListener listener) {
             RequestOptions options = new RequestOptions()
-                    .placeholder(R.drawable.mustacios_thankyou) // Placeholder image
+                    .placeholder(R.drawable.groom_icon) // Placeholder image
                     .error(R.drawable.mustacios_thankyou); // Error image
 
             if (pet.getImageUrls() != null && !pet.getImageUrls().isEmpty()) {

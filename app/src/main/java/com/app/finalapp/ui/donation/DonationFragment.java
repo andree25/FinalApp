@@ -263,6 +263,11 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
     }
 
     private void updateTransactionStatus(String transactionId, String status) {
+        if (transactionId == null || transactionId.isEmpty()) {
+            Log.e(TAG, "Transaction ID is null or empty, cannot update status");
+            return;
+        }
+
         // Update the status of the transaction
         FirebaseDatabase.getInstance().getReference("transactions").child(transactionId).child("status").setValue(status)
                 .addOnFailureListener(e -> Log.e(TAG, "Failed to update transaction status", e));
@@ -273,6 +278,13 @@ public class DonationFragment extends BaseFragment implements PaymentMethodNonce
         // Handle the cancellation of the payment
         Log.d(TAG, "Payment was cancelled by the user.");
         hideLoadingIndicator();
+
+        // Ensure transactionId is not null or empty before updating status
+        if (transactionId == null || transactionId.isEmpty()) {
+            transactionId = UUID.randomUUID().toString(); // Create a new transaction ID if null or empty
+            logTransactionStart(transactionId, "0"); // Log with amount 0 for cancellation
+        }
+
         updateTransactionStatus(transactionId, "cancelled");
         Toast.makeText(getContext(), "Payment was cancelled.", Toast.LENGTH_SHORT).show();
     }
