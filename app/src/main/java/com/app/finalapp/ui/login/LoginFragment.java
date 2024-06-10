@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -20,6 +21,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 
+import com.app.finalapp.AuthenticationManager;
 import com.app.finalapp.R;
 import com.app.finalapp.ui.BaseFragment;
 
@@ -98,6 +100,27 @@ public class LoginFragment extends BaseFragment {
                 Navigation.findNavController(v).navigate(R.id.action_nav_login_to_nav_register, args);
             });
         }
+
+        TextView forgotPassButton = rootView.findViewById(R.id.forgot_pass_button);
+        forgotPassButton.setOnClickListener(v -> {
+            String email = emailLogin.getText().toString().trim();
+            if (!email.isEmpty()) {
+                AuthenticationManager authManager = new AuthenticationManager();
+                authManager.resetPassword(email, requireContext(), new AuthenticationManager.AuthCallback() {
+                    @Override
+                    public void onSuccess() {
+                        Toast.makeText(requireContext(), "Password reset email sent", Toast.LENGTH_LONG).show();
+                    }
+
+                    @Override
+                    public void onFailure(String errorMessage) {
+                        Toast.makeText(requireContext(), "Error: " + errorMessage, Toast.LENGTH_LONG).show();
+                    }
+                });
+            } else {
+                Toast.makeText(requireContext(), "Please enter your email", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void observeViewModel() {

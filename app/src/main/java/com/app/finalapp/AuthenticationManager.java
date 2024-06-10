@@ -97,6 +97,24 @@ public class AuthenticationManager {
         return mAuth.getCurrentUser();
     }
 
+    public void resetPassword(@NonNull String email, @NonNull Context context, AuthCallback callback) {
+        if (isValidEmail(email)) {
+            mAuth.sendPasswordResetEmail(email)
+                    .addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            Toast.makeText(context, "Password reset email sent", Toast.LENGTH_LONG).show();
+                            callback.onSuccess();
+                        } else {
+                            Toast.makeText(context, "Error: " + task.getException().getMessage(), Toast.LENGTH_LONG).show();
+                            callback.onFailure(task.getException().getMessage());
+                        }
+                    });
+        } else {
+            Toast.makeText(context, "Invalid email format", Toast.LENGTH_LONG).show();
+            callback.onFailure("Invalid email format");
+        }
+    }
+
     private void saveUserDataToDatabase(String userId, String email, String name, String forname, String password, Uri imageUri, Context context, AuthCallback callback) {
         Map<String, Object> userMap = new HashMap<>();
         userMap.put("name", name);
